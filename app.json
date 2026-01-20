@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Tamagotchi Leaderboard",
+    "slug": "tamagotchi-leaderboard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a7c7c"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tamagotchi.leaderboard"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a7c7c"
+      },
+      "supportsTablet": true,
+      "package": "com.tamagotchi.leaderboard"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
