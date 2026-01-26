@@ -1,0 +1,159 @@
+Here is the promp used with curosr AI to create the existing framework.
+
+I'm building a Tamagotchi Leaderboard app in React Native with Expo for my biomedical engineering capstone.
+
+PROJECT OVERVIEW:
+- Users can create and care for a virtual Tamagotchi pet
+- The app tracks pet stats over time and displays a competitive leaderboard
+- Real-time updates when other users interact with their pets
+
+TECH STACK:
+- React Native (Expo)
+- Supabase (PostgreSQL database + authentication)
+- Supabase Real-time subscriptions (live updates)
+- React Navigation (routing)
+- TypeScript for type safety
+
+DATA MODEL:
+
+Users table (managed by Supabase Auth):
+- id (UUID - auto from auth.uid())
+- username (string, unique)
+- email (string, unique)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+Tamagotchis table:
+- id (UUID, primary key)
+- user_id (UUID, foreign key to auth.users)
+- name (string)
+- health (integer, 0-100)
+- hunger (integer, 0-100)
+- happiness (integer, 0-100)
+- avatar (emoji or string)
+- created_at (timestamp)
+- last_interaction_time (timestamp)
+- total_interactions_this_week (integer)
+- is_alive (boolean)
+
+Leaderboard view (or query results):
+- Ranks pets by total_interactions_this_week
+- Includes pet name, owner username, interactions, avatar
+- Scoped to current week
+
+CORE FEATURES:
+
+1. Authentication Screen
+- Sign up with email/password using Supabase Auth
+- Login with email/password using Supabase Auth
+- Error handling for invalid credentials
+- Navigation to home after successful authentication
+- Session persistence using Supabase Auth state
+
+2. Home Screen
+- Display user's Tamagotchi (if exists)
+- Show pet name, avatar, and current stats (health, hunger, happiness)
+- Stats displayed as progress bars with percentages
+- Three action buttons: Feed, Play, Sleep
+- Real-time updates when stats change
+
+3. Stat Change Logic
+- Feed button: hunger -30, happiness +10, health +5
+- Play button: hunger -20, happiness +30, health -5
+- Sleep button: hunger -10, health +50, happiness +50
+- All stats clamped between 0-100
+- Each action increments total_interactions_this_week
+- Updates last_interaction_time to current time
+- Immediately update Supabase after each action
+- Handle optimistic updates for better UX
+
+4. Pet Creation Screen
+- If user has no pet, show screen to create one
+- Text input for pet name
+- Simple avatar picker (use emojis: 🐢 🦎 🐉 🦜)
+- Create button saves to Supabase
+- Navigate to home screen after creation
+
+5. Leaderboard Screen
+- Display top 10 pets ranked by total_interactions_this_week this week
+- Each entry shows: rank, pet name, owner username, total interactions, pet avatar
+- Real-time updates using Supabase real-time subscriptions (onSnapshot equivalent)
+- Pull-to-refresh functionality
+- Empty state message if no pets exist
+- Uses Supabase query with order by and limit
+
+6. Settings Screen
+- Display current username
+- Option to change username (with input, validation, update in users table)
+- Option to rename Tamagotchi (update in tamagotchis table)
+- Sign out button with confirmation dialog (Supabase signOut)
+- Back button to home screen
+
+DESIGN REQUIREMENTS:
+- Use modern, clean UI (no skeuomorphism)
+- Stats should have visual progress bars (health=red/green gradient, hunger=orange, happiness=yellow)
+- Buttons should be large and easy to tap
+- Color scheme: use teal/blue as primary, with accent colors for stats
+- Responsive layout (works on phones and tablets)
+- Dark mode support (if device has dark mode enabled)
+- All text should be readable (good contrast)
+
+SUPABASE SETUP:
+- Initialize Supabase client with credentials from .env
+- Set up Supabase Authentication (email/password provider)
+- Create PostgreSQL tables (users, tamagotchis, leaderboard view)
+- Set up Row Level Security (RLS) policies:
+  - Users can read/write their own user profile
+  - Users can create their own tamagotchi
+  - Users can read/write their own tamagotchi
+  - Users can read all tamagotchis (for leaderboard)
+  - Prevent unauthorized writes to other users' data
+- Enable real-time subscriptions for tamagotchis table
+- Create database function to reset weekly interaction counts (optional: via cron job)
+
+CUSTOM HOOKS:
+- useAuth: Handle sign up, login, logout, auth state
+- useTamagotchi: Fetch and manage user's pet, real-time updates
+- useLeaderboard: Fetch top 10 pets, real-time leaderboard updates
+- useTamagotchiActions: Handle feed, play, sleep logic with Supabase updates
+
+ERROR HANDLING:
+- Network error handling (show offline message if no internet)
+- Invalid input validation (empty username, invalid email)
+- Supabase errors (auth failures, write failures) with user-friendly messages
+- Graceful degradation (leaderboard still works if one pet fails to load)
+- Handle real-time subscription errors
+
+NAVIGATION STRUCTURE:
+- Use React Navigation (stack + bottom tabs)
+- Tabs: Home, Leaderboard, Settings
+- Auth stack for login/signup (conditional based on session)
+- Conditional rendering based on auth state
+
+PERFORMANCE:
+- Lazy load images/avatars
+- Optimize Supabase queries (only fetch top 10 for leaderboard, use select() to limit columns)
+- Use memoization for heavy components
+- Cache user data locally with AsyncStorage
+- Use real-time subscriptions efficiently (unsubscribe on unmount)
+
+NEXT STEPS:
+1. Set up Supabase project and get credentials
+2. Create database tables and RLS policies
+3. Generate complete project structure
+4. Create config/supabase.ts with client initialization
+5. Create all screens (Auth, Home, Leaderboard, Settings, PetCreation)
+6. Create custom hooks (useAuth, useTamagotchi, useLeaderboard, useTamagotchiActions)
+7. Set up navigation with React Navigation
+8. Add TypeScript types for all data models
+9. Include error handling and loading states throughout
+10. Test real-time updates with multiple users
+
+Please generate production-ready code with:
+- Full TypeScript support
+- Proper error handling and user-friendly error messages
+- Comments explaining complex logic
+- Following React Native best practices
+- All files organized in a logical folder structure
+- Supabase row-level security policies
+- Real-time subscription management
