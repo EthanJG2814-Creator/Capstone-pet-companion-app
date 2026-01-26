@@ -101,9 +101,15 @@ export const useAuth = () => {
       setError(null);
 
       // First, sign up with Supabase Auth
+      // Pass username in metadata so trigger can use it if needed
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            username: username,
+          },
+        },
       });
 
       if (signUpError) {
@@ -116,18 +122,26 @@ export const useAuth = () => {
         throw new Error('Failed to create user account');
       }
 
-      // Then, create user profile in users table
+      // Wait a brief moment to ensure auth.users record is committed
+      // This helps avoid foreign key constraint issues
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Then, create or update user profile in users table
+      // Use upsert in case trigger already created the profile
       const { error: profileError } = await supabase
         .from('users')
-        .insert({
-          id: authData.user.id,
-          username,
-          email,
-        });
+        .upsert(
+          {
+            id: authData.user.id,
+            username,
+            email,
+          },
+          {
+            onConflict: 'id',
+          }
+        );
 
       if (profileError) {
-        // If profile creation fails, try to clean up auth user
-        // (Note: In production, you might want to handle this differently)
         console.error('Error creating user profile:', profileError);
         const errorMessage = getSupabaseErrorMessage(profileError);
         setError(errorMessage);
