@@ -87,7 +87,7 @@ const TabBarIcon: React.FC<{ name: string; color: string; size: number }> = ({
 export const AppNavigator: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const { tamagotchi, loading: tamagotchiLoading } = useTamagotchi(
-    user?.uid || null
+    user?.id || null
   );
 
   if (authLoading || (user && tamagotchiLoading)) {

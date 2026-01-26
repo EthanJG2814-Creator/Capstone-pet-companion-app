@@ -4,19 +4,20 @@ A React Native mobile application built with Expo for caring for virtual Tamagot
 
 ## Features
 
-- 🔐 **Authentication**: Email/password sign up and login
+- 🔐 **Authentication**: Email/password sign up and login with Supabase Auth
 - 🐾 **Tamagotchi Care**: Create and care for your virtual pet
-- 📊 **Real-time Stats**: Track health, hunger, and happiness
+- 📊 **Real-time Stats**: Track health, hunger, and happiness with live updates
 - 🏆 **Leaderboard**: Compete with other users based on weekly interactions
 - ⚙️ **Settings**: Customize username and pet name
 - 🌙 **Dark Mode**: Automatic dark mode support
+- 🔄 **Real-time Updates**: See leaderboard and pet stats update instantly
 
 ## Tech Stack
 
 - **React Native** with Expo
 - **TypeScript** for type safety
-- **Firebase Firestore** for database
-- **Firebase Authentication** for user management
+- **Supabase** (PostgreSQL database + authentication)
+- **Supabase Real-time** for live updates
 - **React Navigation** for routing
 
 ## Setup Instructions
@@ -26,7 +27,7 @@ A React Native mobile application built with Expo for caring for virtual Tamagot
 - Node.js (v16 or higher)
 - npm or yarn
 - Expo CLI (`npm install -g expo-cli`)
-- Firebase project
+- Supabase account (free tier available)
 
 ### Installation
 
@@ -41,26 +42,22 @@ cd Stupid_Capstone_V2
 npm install
 ```
 
-3. Configure Firebase:
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Enable Authentication with Email/Password provider
-   - Create a Firestore database
-   - Copy your Firebase config to `src/config/firebase.ts`
-   - Deploy Firestore rules from `firestore.rules`
-
-4. Update Firebase configuration:
-   - Open `src/config/firebase.ts`
-   - Replace the placeholder values with your Firebase config:
-     ```typescript
-     const firebaseConfig = {
-       apiKey: "your-api-key",
-       authDomain: "your-project.firebaseapp.com",
-       projectId: "your-project-id",
-       storageBucket: "your-project.appspot.com",
-       messagingSenderId: "123456789",
-       appId: "your-app-id"
-     };
+3. Configure Supabase:
+   - Create a Supabase project at [supabase.com](https://supabase.com)
+   - Get your project URL and anon key from Settings → API
+   - Create `.env` file in the root:
      ```
+     EXPO_PUBLIC_SUPABASE_URL=your-project-url
+     EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+     ```
+
+4. Set up database:
+   - Open Supabase SQL Editor
+   - Run migrations from `supabase/migrations/` in order:
+     - `001_initial_schema.sql`
+     - `002_rls_policies.sql`
+     - `003_weekly_reset_function.sql`
+   - Enable real-time replication for `tamagotchis` table (Database → Replication)
 
 5. Start the development server:
 ```bash
@@ -72,6 +69,8 @@ npm start
    - Scan the QR code from the terminal
    - Or press `i` for iOS simulator, `a` for Android emulator
 
+See [SETUP.md](./SETUP.md) for detailed setup instructions.
+
 ## Project Structure
 
 ```
@@ -82,11 +81,11 @@ src/
 │   ├── LoadingSpinner.tsx
 │   └── ProgressBar.tsx
 ├── config/             # Configuration files
-│   └── firebase.ts     # Firebase initialization
+│   └── supabase.ts     # Supabase client initialization
 ├── hooks/              # Custom React hooks
-│   ├── useAuth.ts
-│   ├── useTamagotchi.ts
-│   └── useLeaderboard.ts
+│   ├── useAuth.ts      # Authentication hook
+│   ├── useTamagotchi.ts # Tamagotchi management with real-time
+│   └── useLeaderboard.ts # Leaderboard with real-time updates
 ├── navigation/         # Navigation setup
 │   └── AppNavigator.tsx
 ├── screens/            # Screen components
@@ -100,27 +99,35 @@ src/
 └── utils/              # Utility functions
     ├── constants.ts
     └── helpers.ts
+
+supabase/
+└── migrations/         # Database migration SQL files
+    ├── 001_initial_schema.sql
+    ├── 002_rls_policies.sql
+    └── 003_weekly_reset_function.sql
 ```
 
 ## Data Model
 
-### Users Collection
-- `uid`: Unique user ID (Firebase Auth UID)
-- `username`: Display name
-- `email`: User email
-- `createdAt`: Timestamp
+### Users Table
+- `id`: UUID (references auth.users)
+- `username`: Display name (unique)
+- `email`: User email (unique)
+- `created_at`: Timestamp
+- `updated_at`: Timestamp
 
-### Tamagotchis Collection
-- `id`: Unique pet ID
-- `ownerId`: Reference to user UID
+### Tamagotchis Table
+- `id`: UUID (primary key)
+- `user_id`: UUID (foreign key to auth.users)
 - `name`: Pet name
 - `health`: Health stat (0-100)
 - `hunger`: Hunger stat (0-100)
 - `happiness`: Happiness stat (0-100)
 - `avatar`: Emoji avatar
-- `createdAt`: Creation timestamp
-- `lastInteractionTime`: Last action timestamp
-- `totalInteractionsThisWeek`: Weekly interaction counter
+- `created_at`: Creation timestamp
+- `last_interaction_time`: Last action timestamp
+- `total_interactions_this_week`: Weekly interaction counter
+- `is_alive`: Boolean flag
 
 ## Game Mechanics
 
@@ -129,19 +136,22 @@ src/
 - **Play**: Hunger -20, Happiness +30, Health -5
 - **Sleep**: Hunger -10, Health +50, Happiness +50
 
-All stats are clamped between 0-100.
+All stats are clamped between 0-100. Each action increments `total_interactions_this_week` and updates `last_interaction_time`.
 
-## Firebase Security Rules
+## Security
 
-The app includes Firestore security rules that:
-- Allow users to read/write their own user data
-- Allow authenticated users to read all tamagotchis (for leaderboard)
-- Prevent unauthorized writes to tamagotchis
+The app uses Supabase Row Level Security (RLS) policies:
+- Users can read/write their own user profile
+- Users can create/update/delete their own tamagotchi
+- All authenticated users can read all tamagotchis (for leaderboard)
+- All users can read usernames (for leaderboard display)
+- Prevents unauthorized writes to other users' data
 
-Deploy rules using:
-```bash
-firebase deploy --only firestore:rules
-```
+## Real-time Features
+
+- **Pet Stats**: Updates automatically when you interact with your pet
+- **Leaderboard**: Updates in real-time when other users interact with their pets
+- Uses Supabase Realtime subscriptions via PostgreSQL change streams
 
 ## Development
 
@@ -155,6 +165,10 @@ npm test
 expo build:android
 expo build:ios
 ```
+
+## Migration from Firebase
+
+If you're migrating from Firebase, see [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for details.
 
 ## License
 

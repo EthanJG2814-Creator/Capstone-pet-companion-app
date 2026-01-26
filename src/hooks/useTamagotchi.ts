@@ -1,111 +1,164 @@
-import { useState, useEffect } from 'react';
-import { 
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  getDoc,
-  addDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../config/supabase';
 import { Tamagotchi, StatAction } from '../types';
-import { STAT_CHANGES, clampStat } from '../utils/constants';
-import { getFirebaseErrorMessage } from '../utils/helpers';
+import { STAT_CHANGES } from '../utils/constants';
+import { clampStat, getSupabaseErrorMessage } from '../utils/helpers';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
-export const useTamagotchi = (ownerId: string | null) => {
+export const useTamagotchi = (userId: string | null) => {
   const [tamagotchi, setTamagotchi] = useState<Tamagotchi | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
 
-  useEffect(() => {
-    if (!ownerId) {
+  // Fetch tamagotchi from database
+  const fetchTamagotchi = useCallback(async () => {
+    if (!userId) {
       setTamagotchi(null);
       setLoading(false);
       return;
     }
 
-    const fetchTamagotchi = async () => {
-      try {
-        setError(null);
-        const q = query(
-          collection(db, 'tamagotchis'),
-          where('ownerId', '==', ownerId)
-        );
-        const querySnapshot = await getDocs(q);
+    try {
+      setError(null);
+      const { data, error: fetchError } = await supabase
+        .from('tamagotchis')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_alive', true)
+        .maybeSingle();
 
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          setTamagotchi({ id: doc.id, ...doc.data() } as Tamagotchi);
-        } else {
-          setTamagotchi(null);
+      if (fetchError) {
+        console.error('Error fetching tamagotchi:', fetchError);
+        setError(getSupabaseErrorMessage(fetchError));
+        setTamagotchi(null);
+      } else if (data) {
+        setTamagotchi(data as Tamagotchi);
+      } else {
+        setTamagotchi(null);
+      }
+    } catch (err: any) {
+      console.error('Error in fetchTamagotchi:', err);
+      setError(getSupabaseErrorMessage(err));
+      setTamagotchi(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchTamagotchi();
+
+    // Set up real-time subscription for this user's tamagotchi
+    if (!userId) {
+      return;
+    }
+
+    const realtimeChannel = supabase
+      .channel(`tamagotchi:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tamagotchis',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Refetch tamagotchi when changes occur
+          fetchTamagotchi();
         }
-      } catch (err: any) {
-        console.error('Error fetching tamagotchi:', err);
-        setError(getFirebaseErrorMessage(err));
-      } finally {
-        setLoading(false);
+      )
+      .subscribe();
+
+    setChannel(realtimeChannel);
+
+    return () => {
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
       }
     };
+  }, [userId, fetchTamagotchi]);
 
-    fetchTamagotchi();
-  }, [ownerId]);
-
-  const createTamagotchi = async (
-    name: string,
-    avatar: string
-  ): Promise<void> => {
-    if (!ownerId) throw new Error('User not authenticated');
+  const createTamagotchi = async (name: string, avatar: string): Promise<void> => {
+    if (!userId) throw new Error('User not authenticated');
 
     try {
       setError(null);
-      const newTamagotchi = {
-        ownerId,
-        name,
-        avatar,
-        health: 100,
-        hunger: 50,
-        happiness: 50,
-        createdAt: serverTimestamp(),
-        lastInteractionTime: serverTimestamp(),
-        totalInteractionsThisWeek: 0,
-      };
+      const { data, error: createError } = await supabase
+        .from('tamagotchis')
+        .insert({
+          user_id: userId,
+          name,
+          avatar,
+          health: 100,
+          hunger: 50,
+          happiness: 50,
+          total_interactions_this_week: 0,
+          is_alive: true,
+        })
+        .select()
+        .single();
 
-      const docRef = await addDoc(collection(db, 'tamagotchis'), newTamagotchi);
-      setTamagotchi({ id: docRef.id, ...newTamagotchi } as Tamagotchi);
+      if (createError) {
+        const errorMessage = getSupabaseErrorMessage(createError);
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      if (data) {
+        setTamagotchi(data as Tamagotchi);
+      }
     } catch (err: any) {
-      const errorMessage = getFirebaseErrorMessage(err);
+      const errorMessage = err.message || getSupabaseErrorMessage(err);
       setError(errorMessage);
       throw new Error(errorMessage);
     }
   };
 
   const performAction = async (action: StatAction): Promise<void> => {
-    if (!tamagotchi || !ownerId) throw new Error('No tamagotchi found');
+    if (!tamagotchi || !userId) throw new Error('No tamagotchi found');
 
     try {
       setError(null);
       const changes = STAT_CHANGES[action];
-      
+
       const updatedStats = {
         health: clampStat(tamagotchi.health + changes.health),
         hunger: clampStat(tamagotchi.hunger + changes.hunger),
         happiness: clampStat(tamagotchi.happiness + changes.happiness),
-        lastInteractionTime: serverTimestamp(),
-        totalInteractionsThisWeek: tamagotchi.totalInteractionsThisWeek + 1,
+        last_interaction_time: new Date().toISOString(),
+        total_interactions_this_week: tamagotchi.total_interactions_this_week + 1,
       };
 
-      await updateDoc(doc(db, 'tamagotchis', tamagotchi.id), updatedStats);
-
-      // Update local state immediately for responsive UI
+      // Optimistically update local state for better UX
       setTamagotchi({
         ...tamagotchi,
         ...updatedStats,
-      } as Tamagotchi);
+      });
+
+      const { data, error: updateError } = await supabase
+        .from('tamagotchis')
+        .update(updatedStats)
+        .eq('id', tamagotchi.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        // Revert optimistic update on error
+        setTamagotchi(tamagotchi);
+        const errorMessage = getSupabaseErrorMessage(updateError);
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Update with server response to ensure consistency
+      if (data) {
+        setTamagotchi(data as Tamagotchi);
+      }
     } catch (err: any) {
-      const errorMessage = getFirebaseErrorMessage(err);
+      const errorMessage = err.message || getSupabaseErrorMessage(err);
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -116,13 +169,32 @@ export const useTamagotchi = (ownerId: string | null) => {
 
     try {
       setError(null);
-      await updateDoc(doc(db, 'tamagotchis', tamagotchi.id), {
-        name: newName,
-      });
 
+      // Optimistically update local state
+      const previousName = tamagotchi.name;
       setTamagotchi({ ...tamagotchi, name: newName });
+
+      const { data, error: updateError } = await supabase
+        .from('tamagotchis')
+        .update({ name: newName })
+        .eq('id', tamagotchi.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        // Revert optimistic update on error
+        setTamagotchi({ ...tamagotchi, name: previousName });
+        const errorMessage = getSupabaseErrorMessage(updateError);
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Update with server response
+      if (data) {
+        setTamagotchi(data as Tamagotchi);
+      }
     } catch (err: any) {
-      const errorMessage = getFirebaseErrorMessage(err);
+      const errorMessage = err.message || getSupabaseErrorMessage(err);
       setError(errorMessage);
       throw new Error(errorMessage);
     }

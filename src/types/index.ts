@@ -1,23 +1,24 @@
-import { Timestamp } from 'firebase/firestore';
-
+// Database types matching Supabase schema
 export interface User {
-  uid: string;
+  id: string; // UUID from auth.users
   username: string;
   email: string;
-  createdAt: Timestamp;
+  created_at: string; // ISO timestamp string
+  updated_at: string; // ISO timestamp string
 }
 
 export interface Tamagotchi {
-  id: string;
-  ownerId: string;
+  id: string; // UUID
+  user_id: string; // UUID foreign key to auth.users
   name: string;
   health: number; // 0-100
   hunger: number; // 0-100
   happiness: number; // 0-100
   avatar: string; // emoji string
-  createdAt: Timestamp;
-  lastInteractionTime: Timestamp;
-  totalInteractionsThisWeek: number;
+  created_at: string; // ISO timestamp string
+  last_interaction_time: string; // ISO timestamp string
+  total_interactions_this_week: number;
+  is_alive: boolean;
 }
 
 export interface LeaderboardEntry {

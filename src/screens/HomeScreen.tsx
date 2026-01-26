@@ -18,7 +18,7 @@ import { StatAction } from '../types';
 export const HomeScreen: React.FC = () => {
   const { user } = useAuth();
   const { tamagotchi, loading, performAction, error } = useTamagotchi(
-    user?.uid || null
+    user?.id || null
   );
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';

@@ -15,7 +15,6 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
       "bundleIdentifier": "com.tamagotchi.leaderboard"
     },
     "android": {
@@ -23,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a7c7c"
       },
-      "supportsTablet": true,
       "package": "com.tamagotchi.leaderboard"
     },
     "web": {

@@ -18,7 +18,7 @@ import { isNotEmpty } from '../utils/helpers';
 
 export const PetCreationScreen: React.FC = () => {
   const { user } = useAuth();
-  const { createTamagotchi, loading } = useTamagotchi(user?.uid || null);
+  const { createTamagotchi, loading } = useTamagotchi(user?.id || null);
   const [petName, setPetName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<string>(AVATAR_OPTIONS[0]);
   const [error, setError] = useState<string>('');

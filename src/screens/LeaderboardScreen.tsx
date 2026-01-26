@@ -36,7 +36,7 @@ const LeaderboardItem: React.FC<{ entry: LeaderboardEntry; isDark: boolean }> = 
       </View>
       <View style={styles.statsContainer}>
         <Text style={[styles.interactions, isDark && styles.interactionsDark]}>
-          {entry.tamagotchi.totalInteractionsThisWeek}
+          {entry.tamagotchi.total_interactions_this_week}
         </Text>
         <Text style={[styles.interactionsLabel, isDark && styles.interactionsLabelDark]}>
           interactions

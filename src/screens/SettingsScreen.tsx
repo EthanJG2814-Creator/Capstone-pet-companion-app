@@ -18,7 +18,7 @@ import { isNotEmpty } from '../utils/helpers';
 export const SettingsScreen: React.FC = () => {
   const { user, userData, signOut, updateUsername } = useAuth();
   const { tamagotchi, renameTamagotchi, loading: tamagotchiLoading } =
-    useTamagotchi(user?.uid || null);
+    useTamagotchi(user?.id || null);
   const [username, setUsername] = useState(userData?.username || '');
   const [petName, setPetName] = useState(tamagotchi?.name || '');
   const [savingUsername, setSavingUsername] = useState(false);

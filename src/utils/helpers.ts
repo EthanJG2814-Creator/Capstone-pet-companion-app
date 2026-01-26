@@ -9,11 +9,16 @@ export const clampStat = (value: number): number => {
 
 /**
  * Formats a timestamp to a readable date string
+ * Accepts ISO timestamp strings from Supabase
  */
-export const formatDate = (timestamp: any): string => {
+export const formatDate = (timestamp: string | null | undefined): string => {
   if (!timestamp) return 'Never';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString();
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  } catch {
+    return 'Invalid date';
+  }
 };
 
 /**
@@ -32,24 +37,44 @@ export const isNotEmpty = (str: string): boolean => {
 };
 
 /**
- * Gets Firebase error message in user-friendly format
+ * Gets Supabase error message in user-friendly format
  */
-export const getFirebaseErrorMessage = (error: any): string => {
+export const getSupabaseErrorMessage = (error: any): string => {
   if (!error) return 'An unknown error occurred';
   
-  const code = error.code || '';
   const message = error.message || 'An unknown error occurred';
   
-  // Map common Firebase error codes to user-friendly messages
+  // Map common Supabase error codes to user-friendly messages
   const errorMap: Record<string, string> = {
-    'auth/user-not-found': 'No account found with this email.',
-    'auth/wrong-password': 'Incorrect password.',
-    'auth/email-already-in-use': 'This email is already registered.',
-    'auth/weak-password': 'Password should be at least 6 characters.',
-    'auth/invalid-email': 'Invalid email address.',
-    'auth/network-request-failed': 'Network error. Please check your internet connection.',
-    'permission-denied': 'You do not have permission to perform this action.',
+    'Invalid login credentials': 'Incorrect email or password.',
+    'Email already registered': 'This email is already registered.',
+    'User already registered': 'This email is already registered.',
+    'Password should be at least 6 characters': 'Password should be at least 6 characters.',
+    'Invalid email': 'Invalid email address.',
+    'Network request failed': 'Network error. Please check your internet connection.',
+    'JWT expired': 'Your session has expired. Please sign in again.',
+    'new row violates row-level security policy': 'You do not have permission to perform this action.',
+    'duplicate key value violates unique constraint': 'This username is already taken.',
   };
   
-  return errorMap[code] || message;
+  // Check if error message matches any known patterns
+  for (const [key, value] of Object.entries(errorMap)) {
+    if (message.includes(key)) {
+      return value;
+    }
+  }
+  
+  // Check for PostgreSQL error codes
+  if (error.code) {
+    const pgErrorMap: Record<string, string> = {
+      '23505': 'This value already exists. Please choose a different one.',
+      '23503': 'Invalid reference. Please try again.',
+      '42501': 'You do not have permission to perform this action.',
+    };
+    if (pgErrorMap[error.code]) {
+      return pgErrorMap[error.code];
+    }
+  }
+  
+  return message;
 };
