@@ -157,3 +157,144 @@ Please generate production-ready code with:
 - All files organized in a logical folder structure
 - Supabase row-level security policies
 - Real-time subscription management
+
+1/26/2026 - New Prompt to fix issues:
+COMPREHENSIVE SUPABASE TAMAGOTCHI APP FIX
+
+PROBLEM:
+Foreign key constraint error (code 23503) when users sign up:
+"Key (id)=(88d0c346-2426-47eb-923d-e8b686316077) is not present in table "users"."
+
+ROOT CAUSE ANALYSIS:
+We ran Supabase migrations that created a users table with a foreign key constraint 
+linking to auth.users. The problem is that when a new user signs up:
+
+1. Supabase Auth creates a user in auth.users with a UUID
+2. Our app code tries to INSERT into public.users table with that UUID
+3. But the foreign key constraint is failing because of how the table was initially set up
+
+WHAT WE DID (ORIGINAL MIGRATIONS):
+We ran 3 migration files:
+1. 001_initial_schema.sql - Created users table with structure:
+   - id UUID PRIMARY KEY
+   - username TEXT UNIQUE NOT NULL
+   - email TEXT UNIQUE NOT NULL
+   - created_at TIMESTAMP
+   - updated_at TIMESTAMP
+
+2. 002_rls_policies.sql - Added Row Level Security policies on users table
+
+3. 003_weekly_reset_function.sql - Created reset function for interactions
+
+THE ISSUE WITH THE ORIGINAL SETUP:
+The users table was created with: id UUID PRIMARY KEY
+But it's missing the explicit foreign key constraint to auth.users(id)
+
+When Supabase Auth creates a new user, it generates a UUID in auth.users.
+When our app tries to insert into public.users, the foreign key constraint 
+between public.users.id and auth.users.id isn't working correctly.
+
+WHAT WE NEED TO DO:
+
+Option 1: RECOMMENDED - Fix the users table schema with proper foreign key
+
+In Supabase SQL Editor, run this COMPLETE MIGRATION:
+
+```sql
+-- Step 1: Disable RLS temporarily to allow modifications
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+
+-- Step 2: Drop all existing policies
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can read all usernames" ON public.users;
+DROP POLICY IF EXISTS "Users can read own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can read all users" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+
+-- Step 3: Drop the old table completely (backup data first if needed)
+DROP TABLE IF EXISTS public.users CASCADE;
+
+-- Step 4: Recreate users table with CORRECT foreign key setup
+CREATE TABLE public.users (
+  id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 5: Create indexes for performance
+CREATE INDEX idx_users_username ON public.users(username);
+CREATE INDEX idx_users_email ON public.users(email);
+
+-- Step 6: Re-enable RLS
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Step 7: Create CORRECT RLS policies for signup to work
+
+-- Allow anyone to insert their own profile (signup)
+CREATE POLICY "Enable insert for signup"
+ON public.users
+FOR INSERT
+WITH CHECK (auth.uid() = id);
+
+-- Allow users to read their own profile
+CREATE POLICY "Enable select own profile"
+ON public.users
+FOR SELECT
+USING (auth.uid() = id);
+
+-- Allow anyone to read all usernames (for leaderboard)
+CREATE POLICY "Enable select all usernames"
+ON public.users
+FOR SELECT
+USING (true);
+
+-- Allow users to update their own profile
+CREATE POLICY "Enable update own profile"
+ON public.users
+FOR UPDATE
+USING (auth.uid() = id);
+
+1/26/2026 - perplexity AI fix the issues after running THESE PROGRAMS IN OREDER:
+FIX_FORIEIGN_KEY_ISSUE
+004_FIX_USERS_TABLE
+005_MAUAL_INSERTION
+
+CLEAN UP CODE:
+-- Drop ALL existing policies on users table
+DROP POLICY IF EXISTS "Anyone can read usernames" ON public.users;
+DROP POLICY IF EXISTS "Allow signup profile creation" ON public.users;
+DROP POLICY IF EXISTS "Enable insert for signup" ON public.users;
+DROP POLICY IF EXISTS "Enable select own profile" ON public.users;
+DROP POLICY IF EXISTS "Enable select all usernames" ON public.users;
+DROP POLICY IF EXISTS "Enable update own profile" ON public.users;
+DROP POLICY IF EXISTS "signup_insert_policy" ON public.users;
+DROP POLICY IF EXISTS "select_own_profile" ON public.users;
+DROP POLICY IF EXISTS "update_own_profile" ON public.users;
+DROP POLICY IF EXISTS "allow_all_insert" ON public.users;
+DROP POLICY IF EXISTS "allow_all_select" ON public.users;
+DROP POLICY IF EXISTS "allow_all_update" ON public.users;
+
+-- Disable and re-enable RLS to clear state
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Create fresh, simple policies
+CREATE POLICY "insert_users"
+ON public.users
+FOR INSERT
+WITH CHECK (true);
+
+CREATE POLICY "select_users"
+ON public.users
+FOR SELECT
+USING (true);
+
+CREATE POLICY "update_users"
+ON public.users
+FOR UPDATE
+USING (true);
+
