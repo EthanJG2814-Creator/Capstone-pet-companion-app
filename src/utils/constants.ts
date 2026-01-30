@@ -27,24 +27,40 @@ export const AVATAR_OPTIONS = ['🐢', '🦎', '🐉', '🦜'] as const;
 // Leaderboard limit
 export const LEADERBOARD_LIMIT = 10;
 
-// Colors
+// Colors – light mode (purple/white theme from reference)
 export const COLORS = {
-  primary: '#0a7c7c',
-  primaryDark: '#065a5a',
-  primaryLight: '#0fa0a0',
+  // Primary accent (vibrant purple #7B61FF)
+  primary: '#7B61FF',
+  primaryDark: '#5a4ad4',
+  primaryLight: '#9d8aff',
   secondary: '#14b8b8',
-  background: '#ffffff',
+  // Backgrounds
+  background: '#F8F8FA',
   backgroundDark: '#121212',
-  text: '#000000',
+  // Text
+  text: '#212121',
   textDark: '#ffffff',
-  textSecondary: '#666666',
+  textSecondary: '#757575',
   textSecondaryDark: '#aaaaaa',
+  // Semantic
   health: '#ef4444',
   healthGood: '#22c55e',
   hunger: '#f97316',
   happiness: '#eab308',
   error: '#ef4444',
   success: '#22c55e',
+  // Borders & surfaces
   border: '#e5e7eb',
   borderDark: '#374151',
+  // Light purple / lavender for cards (#EDE9FC)
+  cardLight: '#EDE9FC',
+  cardLightDark: '#2d2a3d',
+  // Tamagotchi screen (purple/teal)
+  tamagotchiPurple: '#7B61FF',
+  tamagotchiPurpleLight: '#a78bfa',
+  tamagotchiTeal: '#14b8a6',
+  tamagotchiTealLight: '#5eead4',
+  tamagotchiPink: '#ec4899',
+  tamagotchiBgStart: '#5b21b6',
+  tamagotchiBgEnd: '#0e7490',
 } as const;

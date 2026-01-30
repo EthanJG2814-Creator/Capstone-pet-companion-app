@@ -5,8 +5,8 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  useColorScheme,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { LeaderboardEntry } from '../types';
@@ -48,8 +48,7 @@ const LeaderboardItem: React.FC<{ entry: LeaderboardEntry; isDark: boolean }> = 
 
 export const LeaderboardScreen: React.FC = () => {
   const { entries, loading, error, refreshing, refresh } = useLeaderboard();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   if (loading && entries.length === 0) {
     return <LoadingSpinner message="Loading leaderboard..." />;
@@ -57,44 +56,47 @@ export const LeaderboardScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, isDark && styles.titleDark]}>
-          Leaderboard
-        </Text>
-        <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
-          Top {entries.length} Tamagotchis this week
-        </Text>
-      </View>
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {entries.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, isDark && styles.emptyTextDark]}>
-            No pets on the leaderboard yet. Be the first!
+      <View style={styles.centeredWrapper}>
+        <View style={styles.header}>
+          <Text style={[styles.title, isDark && styles.titleDark]}>
+            Leaderboard
+          </Text>
+          <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
+            Top {entries.length} Tamagotchis this week
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={entries}
-          keyExtractor={(item) => item.tamagotchi.id}
-          renderItem={({ item }) => (
-            <LeaderboardItem entry={item} isDark={isDark} />
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={refresh}
-              tintColor={COLORS.primary}
-            />
-          }
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {entries.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, isDark && styles.emptyTextDark]}>
+              No pets on the leaderboard yet. Be the first!
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={entries}
+            keyExtractor={(item) => item.tamagotchi.id}
+            renderItem={({ item }) => (
+              <LeaderboardItem entry={item} isDark={isDark} />
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={refresh}
+                tintColor={COLORS.primary}
+              />
+            }
+            contentContainerStyle={styles.listContent}
+            style={styles.list}
+          />
+        )}
+      </View>
     </View>
   );
 };
@@ -107,15 +109,25 @@ const styles = StyleSheet.create({
   containerDark: {
     backgroundColor: COLORS.backgroundDark,
   },
+  centeredWrapper: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
   header: {
     padding: 20,
+    paddingTop: 56,
     paddingBottom: 12,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 500,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 4,
+    textAlign: 'center',
   },
   titleDark: {
     color: COLORS.textDark,
@@ -123,13 +135,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: COLORS.textSecondary,
+    textAlign: 'center',
   },
   subtitleDark: {
     color: COLORS.textSecondaryDark,
   },
+  list: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 500,
+  },
   listContent: {
     padding: 20,
     paddingTop: 8,
+    paddingHorizontal: 24,
   },
   item: {
     flexDirection: 'row',
@@ -217,6 +236,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     padding: 20,
+    alignItems: 'center',
   },
   errorText: {
     color: COLORS.error,

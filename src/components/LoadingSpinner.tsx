@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet, Text, useColorScheme } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 interface LoadingSpinnerProps {
@@ -7,8 +8,7 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ message }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <View style={styles.container}>

@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
-import { useTamagotchi } from '../hooks/useTamagotchi';
+import { TamagotchiProvider, useTamagotchiContext } from '../contexts/TamagotchiContext';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
@@ -12,15 +12,14 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { PetCreationScreen } from '../screens/PetCreationScreen';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { RootStackParamList, MainTabParamList } from '../types';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabs: React.FC = () => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <Tab.Navigator
@@ -84,27 +83,43 @@ const TabBarIcon: React.FC<{ name: string; color: string; size: number }> = ({
   return <Text style={{ fontSize: 24 }}>{icons[name] || '•'}</Text>;
 };
 
+/** Inner navigator that uses shared tamagotchi context (only rendered when user is logged in). */
+const AuthenticatedStack: React.FC = () => {
+  const { tamagotchi, loading: tamagotchiLoading } = useTamagotchiContext();
+
+  if (tamagotchiLoading) {
+    return <LoadingSpinner message="Loading..." />;
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!tamagotchi ? (
+        <Stack.Screen name="PetCreation" component={PetCreationScreen} />
+      ) : (
+        <Stack.Screen name="Main" component={MainTabs} />
+      )}
+    </Stack.Navigator>
+  );
+};
+
 export const AppNavigator: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { tamagotchi, loading: tamagotchiLoading } = useTamagotchi(
-    user?.id || null
-  );
 
-  if (authLoading || (user && tamagotchiLoading)) {
+  if (authLoading) {
     return <LoadingSpinner message="Loading..." />;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
+      {!user ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : !tamagotchi ? (
-          <Stack.Screen name="PetCreation" component={PetCreationScreen} />
-        ) : (
-          <Stack.Screen name="Main" component={MainTabs} />
-        )}
-      </Stack.Navigator>
+        </Stack.Navigator>
+      ) : (
+        <TamagotchiProvider userId={user.id}>
+          <AuthenticatedStack />
+        </TamagotchiProvider>
+      )}
     </NavigationContainer>
   );
 };
