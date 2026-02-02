@@ -100,8 +100,7 @@ export const useAuth = () => {
     try {
       setError(null);
 
-      // First, sign up with Supabase Auth
-      // Pass username in metadata so trigger can use it if needed
+      // 1. Create auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -122,23 +121,20 @@ export const useAuth = () => {
         throw new Error('Failed to create user account');
       }
 
-      // Wait a brief moment to ensure auth.users record is committed
-      // This helps avoid foreign key constraint issues
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // 2. Small delay to be safe
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Then, create or update user profile in users table
-      // Use upsert in case trigger already created the profile
+      // 3. Create profile row in public.users
+      // Use insert + ignoreDuplicates instead of upsert to avoid RLS update issues
       const { error: profileError } = await supabase
         .from('users')
-        .upsert(
+        .insert(
           {
             id: authData.user.id,
             username,
             email,
           },
-          {
-            onConflict: 'id',
-          }
+          { ignoreDuplicates: true }
         );
 
       if (profileError) {
@@ -148,7 +144,7 @@ export const useAuth = () => {
         throw new Error(errorMessage);
       }
 
-      // Fetch the newly created user data
+      // 4. Load profile into state
       await fetchUserData(authData.user.id);
     } catch (err: any) {
       const errorMessage = err.message || getSupabaseErrorMessage(err);
@@ -201,6 +197,22 @@ export const useAuth = () => {
     }
   };
 
+  const changePassword = async (newPassword: string): Promise<void> => {
+    try {
+      setError(null);
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) {
+        const errorMessage = getSupabaseErrorMessage(updateError);
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || getSupabaseErrorMessage(err);
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
   return {
     user,
     userData,
@@ -211,5 +223,6 @@ export const useAuth = () => {
     signUp,
     signOut,
     updateUsername,
+    changePassword,
   };
 };

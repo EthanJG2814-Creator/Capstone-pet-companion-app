@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTamagotchiContext } from '../contexts/TamagotchiContext';
+import { useMedications } from '../contexts/MedicationsContext';
 import { useAuth } from '../hooks/useAuth';
 import { ProgressBar } from '../components/ProgressBar';
 import { Button } from '../components/Button';
@@ -18,14 +19,26 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AnimatedAvatar } from '../components/AnimatedAvatar';
 import { COLORS } from '../utils/constants';
 import { StatAction } from '../types';
+import { SchedulingService } from '../services/SchedulingService';
 
 export const HomeScreen: React.FC = () => {
   const { tamagotchi, loading, performAction, error } = useTamagotchiContext();
+  const { medications } = useMedications();
   const { userData } = useAuth();
   const navigation = useNavigation<any>();
   const { isDark } = useTheme();
   const [showCareActions, setShowCareActions] = useState(false);
   const [animationTrigger, setAnimationTrigger] = useState<StatAction | null>(null);
+
+  const nextDoses = useMemo(() => {
+    const list: { name: string; time: Date }[] = [];
+    (medications || []).forEach((m) => {
+      const next = SchedulingService.getNextDoseTime(m);
+      if (next) list.push({ name: m.drugName ?? 'Medication', time: next });
+    });
+    list.sort((a, b) => a.time.getTime() - b.time.getTime());
+    return list.slice(0, 3);
+  }, [medications]);
 
   const handleAction = async (action: StatAction) => {
     setAnimationTrigger(action);
@@ -149,6 +162,34 @@ export const HomeScreen: React.FC = () => {
             />
           </View>
         </View>
+      </View>
+
+      {/* Medication reminders */}
+      <View style={[styles.medSection, isDark && styles.medSectionDark]}>
+        <Text style={[styles.medSectionTitle, isDark && styles.medSectionTitleDark]}>
+          Medication reminders
+        </Text>
+        {nextDoses.length > 0 ? (
+          nextDoses.map((d, i) => (
+            <View key={i} style={styles.medRow}>
+              <Text style={[styles.medName, isDark && styles.medNameDark]}>{d.name}</Text>
+              <Text style={[styles.medTime, isDark && styles.medTimeDark]}>
+                {SchedulingService.formatTime(d.time)}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={[styles.medEmpty, isDark && styles.medEmptyDark]}>
+            No upcoming doses. Add medications in the Medications tab.
+          </Text>
+        )}
+        <TouchableOpacity
+          style={styles.medLink}
+          onPress={() => navigation.getParent()?.navigate('Medications')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.medLinkText}>View medications →</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Care actions (Feed, Play, Sleep) - expandable */}
@@ -334,4 +375,28 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
+  medSection: {
+    width: '100%',
+    backgroundColor: COLORS.cardLight,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  medSectionDark: { backgroundColor: COLORS.cardLightDark },
+  medSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  medSectionTitleDark: { color: COLORS.textDark },
+  medRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  medName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  medNameDark: { color: COLORS.textDark },
+  medTime: { fontSize: 14, color: COLORS.textSecondary },
+  medTimeDark: { color: COLORS.textSecondaryDark },
+  medEmpty: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 8 },
+  medEmptyDark: { color: COLORS.textSecondaryDark },
+  medLink: { marginTop: 8 },
+  medLinkText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
 });

@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { useTamagotchiContext } from '../contexts/TamagotchiContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,6 +19,7 @@ import { isNotEmpty } from '../utils/helpers';
 import type { ThemeMode } from '../contexts/ThemeContext';
 
 export const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { user, userData, signOut, updateUsername } = useAuth();
   const { tamagotchi, renameTamagotchi, loading: tamagotchiLoading } =
     useTamagotchiContext();
@@ -111,6 +113,12 @@ export const SettingsScreen: React.FC = () => {
     return <LoadingSpinner message="Loading settings..." />;
   }
 
+  const goToEditProfile = () => navigation.navigate('EditProfileScreen');
+  const goToChangePassword = () => navigation.navigate('ChangePasswordScreen');
+  const goToSchedule = () => navigation.navigate('ScheduleCalendar');
+  const goToScheduleSettings = () => navigation.navigate('ScheduleSettings');
+  const goToMedications = () => navigation.getParent()?.navigate('Medications');
+
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
@@ -120,6 +128,32 @@ export const SettingsScreen: React.FC = () => {
     >
       <View style={styles.centeredContent}>
         <Text style={[styles.sectionTitle, styles.sectionTitleFirst, isDark && styles.sectionTitleDark]}>
+          Medication & account
+        </Text>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToEditProfile} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Edit profile</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToChangePassword} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Change password</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToSchedule} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Schedule</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToScheduleSettings} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Schedule settings</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToMedications} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Medications</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
           Account Settings
         </Text>
 
@@ -287,4 +321,16 @@ const styles = StyleSheet.create({
   themeOptionTextSelected: {
     color: '#fff',
   },
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  settingsRowText: { fontSize: 16, color: COLORS.text },
+  settingsRowTextDark: { color: COLORS.textDark },
+  settingsRowArrow: { fontSize: 16, color: COLORS.textSecondary },
 });
