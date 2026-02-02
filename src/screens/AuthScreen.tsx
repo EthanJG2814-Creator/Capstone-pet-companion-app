@@ -6,9 +6,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  useColorScheme,
   Alert,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -24,8 +24,7 @@ export const AuthScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { signIn, signUp } = useAuth();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -148,6 +147,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   content: {

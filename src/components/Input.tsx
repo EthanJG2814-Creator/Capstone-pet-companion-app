@@ -4,8 +4,8 @@ import {
   Text,
   View,
   StyleSheet,
-  useColorScheme,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 interface InputProps {
@@ -29,8 +29,7 @@ export const Input: React.FC<InputProps> = ({
   autoCapitalize = 'none',
   keyboardType = 'default',
 }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <View style={styles.container}>

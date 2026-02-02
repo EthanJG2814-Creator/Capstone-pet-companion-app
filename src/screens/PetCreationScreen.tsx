@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
-import { useAuth } from '../hooks/useAuth';
-import { useTamagotchi } from '../hooks/useTamagotchi';
+import { useTamagotchiContext } from '../contexts/TamagotchiContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -17,13 +17,11 @@ import { COLORS, AVATAR_OPTIONS } from '../utils/constants';
 import { isNotEmpty } from '../utils/helpers';
 
 export const PetCreationScreen: React.FC = () => {
-  const { user } = useAuth();
-  const { createTamagotchi, loading } = useTamagotchi(user?.id || null);
+  const { createTamagotchi, loading } = useTamagotchiContext();
   const [petName, setPetName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<string>(AVATAR_OPTIONS[0]);
   const [error, setError] = useState<string>('');
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const handleCreate = async () => {
     if (!isNotEmpty(petName)) {
@@ -40,6 +38,9 @@ export const PetCreationScreen: React.FC = () => {
     }
   };
 
+  const { width } = useWindowDimensions();
+  const contentMaxWidth = Math.min(width - 48, 400); // 24px padding each side, max 400px
+
   if (loading) {
     return <LoadingSpinner message="Creating your Tamagotchi..." />;
   }
@@ -47,54 +48,61 @@ export const PetCreationScreen: React.FC = () => {
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { minHeight: 500 }, // Ensures content can center when scrollable
+      ]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.title, isDark && styles.titleDark]}>
-        Create Your Tamagotchi
-      </Text>
-      <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
-        Give your pet a name and choose an avatar
-      </Text>
-
-      <Input
-        label="Pet Name"
-        value={petName}
-        onChangeText={(text) => {
-          setPetName(text);
-          setError('');
-        }}
-        placeholder="Enter your pet's name"
-        error={error}
-        autoCapitalize="words"
-      />
-
-      <View style={styles.avatarSection}>
-        <Text style={[styles.avatarLabel, isDark && styles.avatarLabelDark]}>
-          Choose Avatar
+      <View style={[styles.centeredContent, { maxWidth: contentMaxWidth }]}>
+        <Text style={[styles.title, isDark && styles.titleDark]}>
+          Create Your Tamagotchi
         </Text>
-        <View style={styles.avatarGrid}>
-          {AVATAR_OPTIONS.map((avatar) => (
-            <TouchableOpacity
-              key={avatar}
-              style={[
-                styles.avatarOption,
-                selectedAvatar === avatar && styles.avatarOptionSelected,
-                isDark && styles.avatarOptionDark,
-              ]}
-              onPress={() => setSelectedAvatar(avatar)}
-            >
-              <Text style={styles.avatarEmoji}>{avatar}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+        <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
+          Give your pet a name and choose an avatar
+        </Text>
 
-      <Button
-        title="Create Tamagotchi"
-        onPress={handleCreate}
-        disabled={!isNotEmpty(petName)}
-        style={styles.createButton}
-      />
+        <Input
+          label="Pet Name"
+          value={petName}
+          onChangeText={(text) => {
+            setPetName(text);
+            setError('');
+          }}
+          placeholder="Enter your pet's name"
+          error={error}
+          autoCapitalize="words"
+        />
+
+        <View style={styles.avatarSection}>
+          <Text style={[styles.avatarLabel, isDark && styles.avatarLabelDark]}>
+            Choose Avatar
+          </Text>
+          <View style={styles.avatarGrid}>
+            {AVATAR_OPTIONS.map((avatar) => (
+              <TouchableOpacity
+                key={avatar}
+                style={[
+                  styles.avatarOption,
+                  isDark && styles.avatarOptionDark,
+                  selectedAvatar === avatar && styles.avatarOptionSelected,
+                ]}
+                onPress={() => setSelectedAvatar(avatar)}
+              >
+                <Text style={styles.avatarEmoji}>{avatar}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <Button
+          title="Create Tamagotchi"
+          onPress={handleCreate}
+          disabled={!isNotEmpty(petName)}
+          style={styles.createButton}
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -107,8 +115,16 @@ const styles = StyleSheet.create({
   containerDark: {
     backgroundColor: COLORS.backgroundDark,
   },
-  content: {
-    padding: 20,
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+  },
+  centeredContent: {
+    width: '100%',
+    alignSelf: 'center',
   },
   title: {
     fontSize: 28,
@@ -131,19 +147,22 @@ const styles = StyleSheet.create({
   },
   avatarSection: {
     marginVertical: 24,
+    alignItems: 'center',
   },
   avatarLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 12,
+    textAlign: 'center',
+    width: '100%',
   },
   avatarLabelDark: {
     color: COLORS.textDark,
   },
   avatarGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     flexWrap: 'wrap',
     gap: 12,
   },
@@ -162,13 +181,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundDark,
   },
   avatarOptionSelected: {
-    borderColor: COLORS.primary,
-    borderWidth: 3,
+    borderColor: COLORS.health,
+    borderWidth: 4,
   },
   avatarEmoji: {
     fontSize: 40,
   },
   createButton: {
     marginTop: 16,
+    alignSelf: 'center',
+    minWidth: 200,
   },
 });

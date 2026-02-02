@@ -4,8 +4,8 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  useColorScheme,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 interface ButtonProps {
@@ -25,8 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   style,
 }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const getButtonStyle = () => {
     if (disabled || loading) {

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 interface ProgressBarProps {
@@ -15,8 +16,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   color,
   showPercentage = true,
 }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   
   const clampedValue = Math.max(0, Math.min(100, value));
   const percentage = Math.round(clampedValue);

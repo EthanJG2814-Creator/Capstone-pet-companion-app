@@ -5,26 +5,29 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  useColorScheme,
+  TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
-import { useTamagotchi } from '../hooks/useTamagotchi';
+import { useTamagotchiContext } from '../contexts/TamagotchiContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { COLORS } from '../utils/constants';
 import { isNotEmpty } from '../utils/helpers';
+import type { ThemeMode } from '../contexts/ThemeContext';
 
 export const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { user, userData, signOut, updateUsername } = useAuth();
   const { tamagotchi, renameTamagotchi, loading: tamagotchiLoading } =
-    useTamagotchi(user?.id || null);
+    useTamagotchiContext();
+  const { isDark, themeMode, setThemeMode } = useTheme();
   const [username, setUsername] = useState(userData?.username || '');
   const [petName, setPetName] = useState(tamagotchi?.name || '');
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPetName, setSavingPetName] = useState(false);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   React.useEffect(() => {
     if (userData?.username) {
@@ -110,66 +113,131 @@ export const SettingsScreen: React.FC = () => {
     return <LoadingSpinner message="Loading settings..." />;
   }
 
+  const goToEditProfile = () => navigation.navigate('EditProfileScreen');
+  const goToChangePassword = () => navigation.navigate('ChangePasswordScreen');
+  const goToSchedule = () => navigation.navigate('ScheduleCalendar');
+  const goToScheduleSettings = () => navigation.navigate('ScheduleSettings');
+  const goToMedications = () => navigation.getParent()?.navigate('Medications');
+
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
-        Account Settings
-      </Text>
+      <View style={styles.centeredContent}>
+        <Text style={[styles.sectionTitle, styles.sectionTitleFirst, isDark && styles.sectionTitleDark]}>
+          Medication & account
+        </Text>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToEditProfile} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Edit profile</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToChangePassword} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Change password</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToSchedule} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Schedule</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToScheduleSettings} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Schedule settings</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow} onPress={goToMedications} activeOpacity={0.7}>
+            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Medications</Text>
+            <Text style={styles.settingsRowArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.section}>
-        <Input
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          placeholder="Enter username"
-          autoCapitalize="words"
-        />
-        <Button
-          title="Save Username"
-          onPress={handleUpdateUsername}
-          loading={savingUsername}
-          disabled={username === userData?.username || !isNotEmpty(username)}
-          style={styles.saveButton}
-        />
-      </View>
+        <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+          Account Settings
+        </Text>
 
-      {tamagotchi && (
-        <>
-          <Text
-            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-          >
-            Pet Settings
-          </Text>
+        <View style={styles.section}>
+          <Input
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Enter username"
+            autoCapitalize="words"
+          />
+          <Button
+            title="Save Username"
+            onPress={handleUpdateUsername}
+            loading={savingUsername}
+            disabled={username === userData?.username || !isNotEmpty(username)}
+            style={styles.saveButton}
+          />
+        </View>
 
-          <View style={styles.section}>
-            <Input
-              label="Pet Name"
-              value={petName}
-              onChangeText={setPetName}
-              placeholder="Enter pet name"
-              autoCapitalize="words"
-            />
-            <Button
-              title="Save Pet Name"
-              onPress={handleRenamePet}
-              loading={savingPetName}
-              disabled={petName === tamagotchi.name || !isNotEmpty(petName)}
-              style={styles.saveButton}
-            />
-          </View>
-        </>
-      )}
+        <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+          Appearance
+        </Text>
+        <View style={styles.themeRow}>
+          {(['light', 'dark', 'system'] as ThemeMode[]).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={[
+                styles.themeOption,
+                themeMode === mode && styles.themeOptionSelected,
+                isDark && styles.themeOptionDark,
+                themeMode === mode && isDark && styles.themeOptionSelectedDark,
+              ]}
+              onPress={() => setThemeMode(mode)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.themeOptionText,
+                  isDark && styles.themeOptionTextDark,
+                  themeMode === mode && styles.themeOptionTextSelected,
+                ]}
+              >
+                {mode === 'light' ? 'Light' : mode === 'dark' ? 'Dark' : 'System'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <View style={styles.section}>
-        <Button
-          title="Sign Out"
-          onPress={handleSignOut}
-          variant="danger"
-          style={styles.signOutButton}
-        />
+        {tamagotchi && (
+          <>
+            <Text
+              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+            >
+              Pet Settings
+            </Text>
+
+            <View style={styles.section}>
+              <Input
+                label="Pet Name"
+                value={petName}
+                onChangeText={setPetName}
+                placeholder="Enter pet name"
+                autoCapitalize="words"
+              />
+              <Button
+                title="Save Pet Name"
+                onPress={handleRenamePet}
+                loading={savingPetName}
+                disabled={petName === tamagotchi.name || !isNotEmpty(petName)}
+                style={styles.saveButton}
+              />
+            </View>
+          </>
+        )}
+
+        <View style={styles.section}>
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            variant="danger"
+            style={styles.signOutButton}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -183,8 +251,17 @@ const styles = StyleSheet.create({
   containerDark: {
     backgroundColor: COLORS.backgroundDark,
   },
-  content: {
-    padding: 20,
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  centeredContent: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   sectionTitle: {
     fontSize: 20,
@@ -192,9 +269,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginTop: 24,
     marginBottom: 16,
+    textAlign: 'center',
   },
   sectionTitleDark: {
     color: COLORS.textDark,
+  },
+  sectionTitleFirst: {
+    marginTop: 0,
   },
   section: {
     marginBottom: 32,
@@ -205,4 +286,51 @@ const styles = StyleSheet.create({
   signOutButton: {
     marginTop: 24,
   },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  themeOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: COLORS.cardLight,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  themeOptionDark: {
+    backgroundColor: COLORS.cardLightDark,
+  },
+  themeOptionSelected: {
+    backgroundColor: COLORS.primary,
+  },
+  themeOptionSelectedDark: {
+    backgroundColor: COLORS.primary,
+  },
+  themeOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  themeOptionTextDark: {
+    color: COLORS.textSecondaryDark,
+  },
+  themeOptionTextSelected: {
+    color: '#fff',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  settingsRowText: { fontSize: 16, color: COLORS.text },
+  settingsRowTextDark: { color: COLORS.textDark },
+  settingsRowArrow: { fontSize: 16, color: COLORS.textSecondary },
 });
