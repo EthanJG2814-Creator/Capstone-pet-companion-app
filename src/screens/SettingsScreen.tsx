@@ -253,10 +253,11 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingVertical: 24,
     paddingHorizontal: 20,
+    paddingTop: 96,
+    paddingBottom: 32,
   },
   centeredContent: {
     width: '100%',
@@ -279,6 +280,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+    width: '100%',
   },
   saveButton: {
     marginTop: 12,
@@ -329,6 +331,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    width: '100%',
   },
   settingsRowText: { fontSize: 16, color: COLORS.text },
   settingsRowTextDark: { color: COLORS.textDark },

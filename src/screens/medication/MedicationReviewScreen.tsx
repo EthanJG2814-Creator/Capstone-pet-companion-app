@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { useMedications } from '../../contexts/MedicationsContext';
 import { Input } from '../../components/Input';
@@ -16,6 +16,7 @@ export const MedicationReviewScreen: React.FC<Props> = ({ route, navigation }) =
     parsedData,
     editMode = false,
     existingMedication,
+    imageUri = '',
   } = route.params || {};
 
   const [drugName, setDrugName] = useState(existingMedication?.drugName ?? parsedData?.drugName ?? '');
@@ -75,6 +76,14 @@ export const MedicationReviewScreen: React.FC<Props> = ({ route, navigation }) =
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{editMode ? 'Edit medication' : 'Add medication'}</Text>
+      {!editMode && imageUri ? (
+        <View style={styles.photoPreview}>
+          <Image source={{ uri: imageUri }} style={styles.photo} />
+          <Text style={styles.photoHelp}>
+            Review the captured label. Fill in or correct the fields below.
+          </Text>
+        </View>
+      ) : null}
 
       <Input label="Drug name *" value={drugName} onChangeText={setDrugName} placeholder="e.g. Ibuprofen" autoCapitalize="words" />
       <Input label="Dosage" value={dosage} onChangeText={setDosage} placeholder="e.g. 200mg" />
@@ -94,4 +103,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 20 },
   btn: { marginTop: 16 },
+  photoPreview: { width: '100%', marginBottom: 20 },
+  photo: { width: '100%', aspectRatio: 3 / 4, borderRadius: 16, marginBottom: 8 },
+  photoHelp: { fontSize: 13, color: COLORS.textSecondary },
 });
