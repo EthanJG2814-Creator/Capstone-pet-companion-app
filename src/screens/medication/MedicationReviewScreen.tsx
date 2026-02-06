@@ -1,109 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { useMedications } from '../../contexts/MedicationsContext';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { COLORS } from '../../utils/constants';
-import { isNotEmpty } from '../../utils/helpers';
-import type { Medication, ParsedMedicationData, MedicationStackParamList } from '../../types';
+import { useTheme } from '../../contexts/ThemeContext';
+import type { MedicationStackParamList, Medication, ParsedMedicationData } from '../../types';
 
 type Props = StackScreenProps<MedicationStackParamList, 'MedicationReview'>;
 
-export const MedicationReviewScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { addMedication, updateMedication } = useMedications();
-  const {
-    parsedData,
-    editMode = false,
-    existingMedication,
-    imageUri = '',
-  } = route.params || {};
+function getInitialValues(params: Props['route']['params']) {
+  const editMode = params?.editMode ?? false;
+  const existing = params?.existingMedication;
+  const parsed = params?.parsedData;
+  return {
+    editMode,
+    drugName: existing?.drugName ?? parsed?.drugName ?? '',
+    dosage: existing?.dosage ?? parsed?.dosage ?? '',
+    frequency: existing?.frequency ?? parsed?.frequency ?? 'Once daily',
+    imageUri: params?.imageUri ?? '',
+  };
+}
 
-  const [drugName, setDrugName] = useState(existingMedication?.drugName ?? parsedData?.drugName ?? '');
-  const [dosage, setDosage] = useState(existingMedication?.dosage ?? parsedData?.dosage ?? '');
-  const [frequency, setFrequency] = useState(existingMedication?.frequency ?? parsedData?.frequency ?? '');
-  const [strength, setStrength] = useState(existingMedication?.strength ?? parsedData?.strength ?? '');
-  const [instructions, setInstructions] = useState(existingMedication?.instructions ?? parsedData?.instructions ?? '');
-  const [quantity, setQuantity] = useState(String(existingMedication?.quantity ?? parsedData?.quantity ?? ''));
-  const [refills, setRefills] = useState(String(existingMedication?.refills ?? parsedData?.refills ?? ''));
+export const MedicationReviewScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { isDark } = useTheme();
+  const initial = useMemo(() => getInitialValues(route.params), [route.params]);
+  const { addMedication, updateMedication } = useMedications();
+  const [drugName, setDrugName] = useState(initial.drugName);
+  const [dosage, setDosage] = useState(initial.dosage);
+  const [frequency, setFrequency] = useState(initial.frequency);
   const [saving, setSaving] = useState(false);
+  const imageUri = initial.imageUri;
+  const editMode = initial.editMode;
+  const existingMedication = route.params?.existingMedication;
 
   const handleSave = async () => {
-    if (!isNotEmpty(drugName)) {
-      Alert.alert('Error', 'Drug name is required');
-      return;
-    }
+    if (!drugName.trim()) return;
     setSaving(true);
     try {
-      const reminderTimes = existingMedication?.reminderTimes ?? [];
-      const startDate = existingMedication?.startDate ?? new Date();
-      if (editMode && existingMedication) {
-        await updateMedication({
-          ...existingMedication,
-          drugName: drugName.trim(),
-          dosage: dosage.trim(),
-          frequency: frequency.trim(),
-          strength: strength.trim(),
-          instructions: instructions.trim() || undefined,
-          quantity: quantity.trim() || undefined,
-          refills: refills.trim() || undefined,
-          reminderTimes,
-          startDate,
-        });
-        Alert.alert('Saved', 'Medication updated');
+      const base: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
+        drugName: drugName.trim(),
+        dosage: dosage.trim(),
+        frequency: frequency.trim() || 'Once daily',
+        reminderTimes: existingMedication?.reminderTimes ?? [],
+        startDate: existingMedication?.startDate ?? new Date(),
+        user_key: existingMedication?.user_key,
+      };
+      if (editMode && existingMedication?.id) {
+        await updateMedication({ ...existingMedication, ...base, id: existingMedication.id });
+        navigation.navigate('MedicationDetails', { medication: { ...existingMedication, ...base } as Medication });
       } else {
-        await addMedication({
-          drugName: drugName.trim(),
-          dosage: dosage.trim(),
-          frequency: frequency.trim(),
-          strength: strength.trim(),
-          instructions: instructions.trim() || undefined,
-          quantity: quantity.trim() || undefined,
-          refills: refills.trim() || undefined,
-          reminderTimes: [],
-          startDate,
-        });
-        Alert.alert('Saved', 'Medication added');
+        const created = await addMedication(base);
+        navigation.navigate('MedicationDetails', { medication: created });
       }
-      navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', (e as Error)?.message ?? 'Failed to save');
+      console.error(e);
     } finally {
       setSaving(false);
     }
   };
 
+  const containerStyle = [styles.container, isDark && styles.containerDark];
+  const titleStyle = [styles.title, isDark && styles.titleDark];
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>{editMode ? 'Edit medication' : 'Add medication'}</Text>
-      {!editMode && imageUri ? (
-        <View style={styles.photoPreview}>
-          <Image source={{ uri: imageUri }} style={styles.photo} />
-          <Text style={styles.photoHelp}>
-            Review the captured label. Fill in or correct the fields below.
-          </Text>
+    <ScrollView style={containerStyle} contentContainerStyle={styles.content}>
+      <Text style={titleStyle}>{editMode ? 'Edit medication' : 'Add medication'}</Text>
+      {imageUri ? (
+        <View style={styles.imageSection}>
+          <Text style={[styles.imageLabel, isDark && styles.imageLabelDark]}>Captured label</Text>
+          <Image source={{ uri: imageUri }} style={styles.capturedImage} resizeMode="contain" />
         </View>
       ) : null}
-
-      <Input label="Drug name *" value={drugName} onChangeText={setDrugName} placeholder="e.g. Ibuprofen" autoCapitalize="words" />
-      <Input label="Dosage" value={dosage} onChangeText={setDosage} placeholder="e.g. 200mg" />
-      <Input label="Frequency" value={frequency} onChangeText={setFrequency} placeholder="e.g. Twice daily" />
-      <Input label="Strength" value={strength} onChangeText={setStrength} placeholder="e.g. 200mg" />
-      <Input label="Instructions" value={instructions} onChangeText={setInstructions} placeholder="Take with food" />
-      <Input label="Quantity" value={quantity} onChangeText={setQuantity} placeholder="30" />
-      <Input label="Refills" value={refills} onChangeText={setRefills} placeholder="3" />
-
-      <Button title={editMode ? 'Save changes' : 'Add medication'} onPress={handleSave} loading={saving} disabled={!isNotEmpty(drugName)} style={styles.btn} />
+      <Input label="Medication name" value={drugName} onChangeText={setDrugName} placeholder="e.g. Aspirin" />
+      <Input label="Dosage" value={dosage} onChangeText={setDosage} placeholder="e.g. 81 mg" />
+      <Input label="Frequency" value={frequency} onChangeText={setFrequency} placeholder="e.g. Once daily" />
+      <Button
+        title={editMode ? 'Save changes' : 'Add medication'}
+        onPress={handleSave}
+        loading={saving}
+        disabled={!drugName.trim()}
+        style={styles.btn}
+      />
+      <Button title="Cancel" onPress={() => navigation.goBack()} variant="secondary" style={styles.btn} />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  containerDark: { backgroundColor: COLORS.backgroundDark },
   content: { padding: 16, paddingBottom: 32 },
-  title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 20 },
-  btn: { marginTop: 16 },
-  photoPreview: { width: '100%', marginBottom: 20 },
-  photo: { width: '100%', aspectRatio: 3 / 4, borderRadius: 16, marginBottom: 8 },
-  photoHelp: { fontSize: 13, color: COLORS.textSecondary },
+  title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 16 },
+  titleDark: { color: COLORS.textDark },
+  imageSection: { marginBottom: 16 },
+  imageLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8 },
+  imageLabelDark: { color: COLORS.textSecondaryDark },
+  capturedImage: { width: '100%', height: 160, borderRadius: 12, backgroundColor: COLORS.border },
+  btn: { marginTop: 12 },
 });

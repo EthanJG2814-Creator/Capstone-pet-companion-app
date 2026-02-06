@@ -1,153 +1,124 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useMedications } from '../../contexts/MedicationsContext';
-import { SchedulingService } from '../../services/SchedulingService';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../../components/Button';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { COLORS } from '../../utils/constants';
-import type { Medication, MedicationStackParamList } from '../../types';
+import type { MedicationStackParamList } from '../../types';
+import type { StackScreenProps } from '@react-navigation/stack';
 
-type Nav = StackNavigationProp<MedicationStackParamList, 'MedicationsHome'>;
+type ScreenProps = StackScreenProps<MedicationStackParamList, 'MedicationsHome'>;
 
-const normalizeMed = (item: Medication) => ({
-  id: item.id,
-  name: item.drugName ?? 'Unknown',
-  strength: item.strength ?? '',
-  dosage: item.dosage ?? '',
-  frequency: item.frequency ?? '',
-  instructions: item.instructions ?? '',
-  nextDose: SchedulingService.getNextDoseTime(item),
-  raw: item,
-});
+export const MedicationsHomeScreen: React.FC<ScreenProps> = ({ navigation }) => {
+  const { isDark } = useTheme();
+  const { medications, loading, refreshMedications } = useMedications();
 
-export const MedicationsHomeScreen: React.FC = () => {
-  const navigation = useNavigation<Nav>();
-  const { medications, refreshMedications } = useMedications();
-  const [refreshing, setRefreshing] = useState(false);
-
-  const medList = useMemo(
-    () => (Array.isArray(medications) ? medications : []).map(normalizeMed),
-    [medications]
+  useFocusEffect(
+    useCallback(() => {
+      refreshMedications();
+    }, [refreshMedications])
   );
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refreshMedications();
-    setRefreshing(false);
-  }, [refreshMedications]);
-
-  const handleAdd = () => {
-    Alert.alert('Add medication', 'Choose how to add your medication.', [
-      {
-        text: 'Scan label',
-        onPress: () => (navigation as any).navigate('MedicationLabelCapture'),
-      },
-      {
-        text: 'Enter manually',
-        onPress: () =>
-          (navigation as any).navigate('MedicationReview', {
-            imageUri: '',
-            rawOcrText: '',
-            parsedData: undefined,
-            editMode: false,
-            existingMedication: undefined,
-          }),
-      },
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-    ]);
+  const openDetails = (medication: import('../../types').Medication) => {
+    navigation.navigate('MedicationDetails', { medication });
   };
 
-  const renderItem = ({ item }: { item: ReturnType<typeof normalizeMed> }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => (navigation as any).navigate('MedicationDetails', { medication: item.raw })}
-      activeOpacity={0.7}
-    >
-      <View style={styles.iconWrap}>
-        <MaterialIcons name="medication" size={28} color={COLORS.primary} />
-      </View>
-      <View style={styles.info}>
-        <Text style={styles.name}>{item.name}</Text>
-        {item.strength ? <Text style={styles.detail}>Strength: {item.strength}</Text> : null}
-        {item.dosage ? <Text style={styles.detail}>Dosage: {item.dosage}</Text> : null}
-        {item.frequency ? <Text style={styles.detail}>Frequency: {item.frequency}</Text> : null}
-        {item.nextDose && (
-          <View style={styles.nextRow}>
-            <MaterialIcons name="access-time" size={14} color={COLORS.textSecondary} />
-            <Text style={styles.nextText}>Next: {SchedulingService.formatTime(item.nextDose)}</Text>
-          </View>
-        )}
-      </View>
-      <MaterialIcons name="chevron-right" size={22} color={COLORS.textSecondary} />
-    </TouchableOpacity>
-  );
+  const openScanLabel = () => {
+    navigation.navigate('MedicationLabelCapture');
+  };
 
-  const empty = (
-    <View style={styles.empty}>
-      <MaterialIcons name="medication" size={64} color={COLORS.textSecondary} />
-      <Text style={styles.emptyTitle}>No medications</Text>
-      <Text style={styles.emptySub}>Add one with the + button</Text>
-    </View>
-  );
+  const openAddManually = () => {
+    navigation.navigate('MedicationReview', {
+      editMode: false,
+      existingMedication: undefined,
+    });
+  };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading medications..." />;
+  }
+
+  const containerStyle = [styles.container, isDark && styles.containerDark];
+  const titleStyle = [styles.title, isDark && styles.titleDark];
+  const emptyStyle = [styles.emptyText, isDark && styles.emptyTextDark];
+  const cardStyle = [styles.card, isDark && styles.cardDark];
+  const medNameStyle = [styles.medName, isDark && styles.medNameDark];
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={medList}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={empty}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      />
-      <TouchableOpacity style={styles.fab} onPress={handleAdd} activeOpacity={0.8}>
-        <MaterialIcons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
-    </View>
+    <ScrollView style={containerStyle} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={titleStyle}>Medications</Text>
+        <View style={styles.addActions}>
+          <Button title="Scan label (OCR)" onPress={openScanLabel} variant="secondary" style={styles.addBtn} />
+          <Button title="Add medication manually" onPress={openAddManually} variant="primary" style={styles.addBtn} />
+        </View>
+      </View>
+      {medications.length === 0 ? (
+        <View style={styles.empty}>
+          <MaterialIcons name="medication" size={56} color={COLORS.textSecondary} />
+          <Text style={emptyStyle}>No medications yet</Text>
+          <Text style={[styles.emptySub, isDark && styles.emptySubDark]}>
+            Scan a prescription label or add details manually
+          </Text>
+          <View style={styles.emptyActions}>
+            <Button title="Scan label (OCR)" onPress={openScanLabel} variant="secondary" style={styles.emptyBtn} />
+            <Button title="Add medication manually" onPress={openAddManually} variant="primary" style={styles.emptyBtn} />
+          </View>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {medications.map((m) => (
+            <TouchableOpacity
+              key={m.id}
+              style={cardStyle}
+              onPress={() => openDetails(m)}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="medication" size={24} color={COLORS.primary} />
+              <View style={styles.cardText}>
+                <Text style={medNameStyle}>{m.drugName}</Text>
+                {m.dosage ? <Text style={[styles.dosage, isDark && styles.dosageDark]}>{m.dosage}</Text> : null}
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  list: { padding: 16, paddingBottom: 88 },
+  containerDark: { backgroundColor: COLORS.backgroundDark },
+  content: { padding: 16, paddingBottom: 32 },
+  header: { marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
+  titleDark: { color: COLORS.textDark },
+  addActions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  addBtn: { flex: 1, minWidth: 140 },
+  empty: { alignItems: 'center', paddingTop: 48 },
+  emptyText: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginTop: 16 },
+  emptyTextDark: { color: COLORS.textDark },
+  emptySub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8, textAlign: 'center' },
+  emptySubDark: { color: COLORS.textSecondaryDark },
+  emptyActions: { marginTop: 20, width: '100%', maxWidth: 280, gap: 10 },
+  emptyBtn: {},
+  list: { gap: 10 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.cardLight,
     borderRadius: 12,
     padding: 14,
-    marginBottom: 10,
   },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  info: { flex: 1 },
-  name: { fontSize: 17, fontWeight: '600', color: COLORS.text, marginBottom: 4 },
-  detail: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 2 },
-  nextRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  nextText: { fontSize: 13, color: COLORS.textSecondary, marginLeft: 4 },
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: COLORS.text, marginTop: 16 },
-  emptySub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8 },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  cardDark: { backgroundColor: COLORS.cardLightDark },
+  cardText: { flex: 1, marginLeft: 12 },
+  medName: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+  medNameDark: { color: COLORS.textDark },
+  dosage: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  dosageDark: { color: COLORS.textSecondaryDark },
 });

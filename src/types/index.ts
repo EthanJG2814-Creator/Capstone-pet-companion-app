@@ -96,7 +96,6 @@ export type RootStackParamList = {
   PetCreation: undefined;
   EditProfileScreen: undefined;
   ChangePasswordScreen: undefined;
-  ScheduleCalendar: undefined;
   ScheduleSettings: undefined;
 };
 
@@ -104,7 +103,13 @@ export type MainTabParamList = {
   Home: undefined;
   Leaderboard: undefined;
   Medications: undefined;
+  Schedule: undefined;
   Settings: undefined;
+};
+
+export type ScheduleStackParamList = {
+  MedicationScheduleCalendar: undefined;
+  ScheduleSettings: undefined;
 };
 
 export type MedicationStackParamList = {

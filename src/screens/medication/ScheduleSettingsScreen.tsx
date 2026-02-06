@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMedications } from '../../contexts/MedicationsContext';
 import { SchedulingService } from '../../services/SchedulingService';
 import { Input } from '../../components/Input';
@@ -44,18 +45,21 @@ export const ScheduleSettingsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Schedule settings</Text>
-      <Text style={styles.hint}>Use 24-hour format (e.g. 07:00, 22:00)</Text>
-      <Input label="Wake time" value={wakeTime} onChangeText={setWakeTime} placeholder="07:00" />
-      <Input label="Sleep time" value={sleepTime} onChangeText={setSleepTime} placeholder="22:00" />
-      <Button title="Save" onPress={handleSave} loading={saving} style={styles.btn} />
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Schedule settings</Text>
+        <Text style={styles.hint}>Use 24-hour format (e.g. 07:00, 22:00)</Text>
+        <Input label="Wake time" value={wakeTime} onChangeText={setWakeTime} placeholder="07:00" />
+        <Input label="Sleep time" value={sleepTime} onChangeText={setSleepTime} placeholder="22:00" />
+        <Button title="Save" onPress={handleSave} loading={saving} style={styles.btn} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
   content: { padding: 20, paddingBottom: 32 },
   title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
   hint: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 20 },
