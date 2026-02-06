@@ -21,6 +21,7 @@ import {
   MedicationScheduleScreen,
   MedicationConfirmationScreen,
   LinkRFIDScreen,
+  MedicationLabelCaptureScreen,
   EditProfileScreen,
   ChangePasswordScreen,
   ScheduleCalendarScreen,
@@ -85,6 +86,11 @@ function MedicationStackNavigator() {
         name="LinkRFID"
         component={LinkRFIDScreen}
         options={{ title: 'Link RFID' }}
+      />
+      <MedicationStack.Screen
+        name="MedicationLabelCapture"
+        component={MedicationLabelCaptureScreen}
+        options={{ title: 'Scan label' }}
       />
     </MedicationStack.Navigator>
   );

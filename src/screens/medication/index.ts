@@ -8,3 +8,4 @@ export { EditProfileScreen } from './EditProfileScreen';
 export { ChangePasswordScreen } from './ChangePasswordScreen';
 export { ScheduleCalendarScreen } from './ScheduleCalendarScreen';
 export { ScheduleSettingsScreen } from './ScheduleSettingsScreen';
+export { MedicationLabelCaptureScreen } from './MedicationLabelCaptureScreen';

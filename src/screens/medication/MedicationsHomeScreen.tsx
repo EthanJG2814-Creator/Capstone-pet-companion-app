@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -38,13 +38,27 @@ export const MedicationsHomeScreen: React.FC = () => {
   }, [refreshMedications]);
 
   const handleAdd = () => {
-    (navigation as any).navigate('MedicationReview', {
-      imageUri: '',
-      rawOcrText: '',
-      parsedData: undefined,
-      editMode: false,
-      existingMedication: undefined,
-    });
+    Alert.alert('Add medication', 'Choose how to add your medication.', [
+      {
+        text: 'Scan label',
+        onPress: () => (navigation as any).navigate('MedicationLabelCapture'),
+      },
+      {
+        text: 'Enter manually',
+        onPress: () =>
+          (navigation as any).navigate('MedicationReview', {
+            imageUri: '',
+            rawOcrText: '',
+            parsedData: undefined,
+            editMode: false,
+            existingMedication: undefined,
+          }),
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const renderItem = ({ item }: { item: ReturnType<typeof normalizeMed> }) => (

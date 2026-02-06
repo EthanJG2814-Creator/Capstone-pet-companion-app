@@ -114,6 +114,7 @@ export type MedicationStackParamList = {
   MedicationSchedule: { medication: Omit<Medication, 'reminderTimes'>; editMode?: boolean };
   MedicationConfirmation: { medicationId: string; scheduledTime: Date };
   LinkRFID: { medication: Medication };
+  MedicationLabelCapture: undefined;
 };
 
 export type StatAction = 'feed' | 'play' | 'sleep';
