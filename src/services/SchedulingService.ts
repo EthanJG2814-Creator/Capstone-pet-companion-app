@@ -1,5 +1,5 @@
 import type { Medication, UserPreferences } from '../types';
-import { setHours, setMinutes, addMinutes, format } from 'date-fns';
+import { setHours, setMinutes, addMinutes, format, startOfDay, differenceInDays, getDay } from 'date-fns';
 
 /** Parse frequency string to number of times per day (e.g. "once daily" -> 1) */
 export function parseFrequencyToTimesPerDay(frequency: string): number {
@@ -70,5 +70,59 @@ export class SchedulingService {
       useRFIDConfirmation: false,
       confirmationWindowMinutes: 30,
     };
+  }
+
+  /**
+   * Returns whether the medication should appear on the given calendar date based on frequency and start date.
+   * PRN is excluded from the schedule (no recurring days).
+   */
+  static occursOnDate(medication: Medication, date: Date): boolean {
+    const freq = (medication.frequency || '').trim();
+    const start = medication.startDate instanceof Date ? medication.startDate : new Date(medication.startDate);
+    const startNorm = startOfDay(start);
+    const dayNorm = startOfDay(date);
+    if (dayNorm < startNorm) return false;
+
+    if (freq === 'As needed (PRN)') return false;
+
+    if (
+      freq === 'Once daily' ||
+      freq === 'Twice daily' ||
+      freq === 'Three times daily' ||
+      freq === 'Four times daily'
+    ) {
+      return true;
+    }
+
+    if (freq === 'Every other day') {
+      const daysDiff = differenceInDays(dayNorm, startNorm);
+      return daysDiff % 2 === 0;
+    }
+
+    if (freq === 'Once weekly') {
+      return getDay(dayNorm) === getDay(startNorm);
+    }
+
+    if (freq === 'Twice weekly') {
+      const startWeekday = getDay(startNorm);
+      const secondWeekday = (startWeekday + 3) % 7;
+      const dayWeekday = getDay(dayNorm);
+      return dayWeekday === startWeekday || dayWeekday === secondWeekday;
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns the times (as Date on the given day) for this medication on that day, using reminderTimes for time-of-day.
+   */
+  static getTimesForDay(medication: Medication, day: Date): Date[] {
+    const times = Array.isArray(medication.reminderTimes) ? medication.reminderTimes : [];
+    if (times.length === 0) return [];
+    const dayNorm = startOfDay(day);
+    return times.map((t) => {
+      const d = t instanceof Date ? t : new Date(t);
+      return setHours(setMinutes(dayNorm, d.getMinutes()), d.getHours());
+    });
   }
 }

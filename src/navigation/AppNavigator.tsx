@@ -24,25 +24,27 @@ import {
   MedicationLabelCaptureScreen,
   EditProfileScreen,
   ChangePasswordScreen,
-  ScheduleCalendarScreen,
   ScheduleSettingsScreen,
+  MedicationScheduleCalendarScreen,
 } from '../screens/medication';
 import {
   RootStackParamList,
   MainTabParamList,
   MedicationStackParamList,
-  Medication,
+  ScheduleStackParamList,
 } from '../types';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const MedicationStack = createStackNavigator<MedicationStackParamList>();
+const ScheduleStack = createStackNavigator<ScheduleStackParamList>();
 
 function TabBarIcon({ name, color, size }: { name: string; color: string; size: number }) {
   const icons: Record<string, string> = {
     home: '🏠',
     trophy: '🏆',
     medication: '💊',
+    schedule: '📅',
     settings: '⚙️',
   };
   return <Text style={{ fontSize: 24 }}>{icons[name] || '•'}</Text>;
@@ -96,6 +98,29 @@ function MedicationStackNavigator() {
   );
 }
 
+function ScheduleStackNavigator() {
+  return (
+    <ScheduleStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.primary },
+        headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: '600' },
+      }}
+    >
+      <ScheduleStack.Screen
+        name="MedicationScheduleCalendar"
+        component={MedicationScheduleCalendarScreen}
+        options={{ title: 'Schedule', headerShown: false }}
+      />
+      <ScheduleStack.Screen
+        name="ScheduleSettings"
+        component={ScheduleSettingsScreen}
+        options={{ title: 'Schedule settings' }}
+      />
+    </ScheduleStack.Navigator>
+  );
+}
+
 const MainTabs: React.FC = () => {
   const { isDark } = useTheme();
   const { user } = useAuth();
@@ -137,6 +162,14 @@ const MainTabs: React.FC = () => {
         }}
       />
       <Tab.Screen
+        name="Schedule"
+        component={ScheduleStackNavigator}
+        options={{
+          tabBarLabel: 'Schedule',
+          tabBarIcon: ({ color, size }) => <TabBarIcon name="schedule" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
@@ -172,11 +205,6 @@ const AuthenticatedStack: React.FC = () => {
             name="ChangePasswordScreen"
             component={ChangePasswordScreen}
             options={{ headerShown: true, title: 'Change password', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: '#fff' }}
-          />
-          <RootStack.Screen
-            name="ScheduleCalendar"
-            component={ScheduleCalendarScreen}
-            options={{ headerShown: true, title: 'Schedule', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: '#fff' }}
           />
           <RootStack.Screen
             name="ScheduleSettings"

@@ -115,7 +115,6 @@ export const SettingsScreen: React.FC = () => {
 
   const goToEditProfile = () => navigation.navigate('EditProfileScreen');
   const goToChangePassword = () => navigation.navigate('ChangePasswordScreen');
-  const goToSchedule = () => navigation.navigate('ScheduleCalendar');
   const goToScheduleSettings = () => navigation.navigate('ScheduleSettings');
   const goToMedications = () => navigation.getParent()?.navigate('Medications');
 
@@ -137,10 +136,6 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingsRow} onPress={goToChangePassword} activeOpacity={0.7}>
             <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Change password</Text>
-            <Text style={styles.settingsRowArrow}>→</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingsRow} onPress={goToSchedule} activeOpacity={0.7}>
-            <Text style={[styles.settingsRowText, isDark && styles.settingsRowTextDark]}>Schedule</Text>
             <Text style={styles.settingsRowArrow}>→</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingsRow} onPress={goToScheduleSettings} activeOpacity={0.7}>
@@ -253,11 +248,10 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 24,
     paddingHorizontal: 20,
-    paddingTop: 96,
-    paddingBottom: 32,
   },
   centeredContent: {
     width: '100%',
