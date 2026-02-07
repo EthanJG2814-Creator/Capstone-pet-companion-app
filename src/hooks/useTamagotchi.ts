@@ -124,12 +124,20 @@ export const useTamagotchi = (userId: string | null) => {
       setError(null);
       const changes = STAT_CHANGES[action];
 
+      // Points (health): reset to 0 when reaching 100
+      let newHealth = clampStat(tamagotchi.health + changes.health);
+      if (newHealth >= 100) newHealth = 0;
+
+      // Streak: reset when reaching 30 days
+      let newStreak = tamagotchi.total_interactions_this_week + 1;
+      if (newStreak >= 30) newStreak = 0;
+
       const updatedStats = {
-        health: clampStat(tamagotchi.health + changes.health),
+        health: newHealth,
         hunger: clampStat(tamagotchi.hunger + changes.hunger),
         happiness: clampStat(tamagotchi.happiness + changes.happiness),
         last_interaction_time: new Date().toISOString(),
-        total_interactions_this_week: tamagotchi.total_interactions_this_week + 1,
+        total_interactions_this_week: newStreak,
       };
 
       // Optimistically update local state for better UX

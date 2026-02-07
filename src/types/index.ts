@@ -94,6 +94,8 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   PetCreation: undefined;
+  Settings: undefined;
+  Leaderboard: undefined;
   EditProfileScreen: undefined;
   ChangePasswordScreen: undefined;
   ScheduleSettings: undefined;
@@ -101,10 +103,8 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Leaderboard: undefined;
   Medications: undefined;
   Schedule: undefined;
-  Settings: undefined;
 };
 
 export type ScheduleStackParamList = {
