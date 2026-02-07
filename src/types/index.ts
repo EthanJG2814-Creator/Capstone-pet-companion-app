@@ -116,7 +116,7 @@ export type MedicationStackParamList = {
   MedicationsHome: undefined;
   MedicationDetails: { medication: Medication };
   MedicationReview: { imageUri?: string; rawOcrText?: string; parsedData?: ParsedMedicationData; editMode?: boolean; existingMedication?: Medication };
-  MedicationSchedule: { medication: Omit<Medication, 'reminderTimes'>; editMode?: boolean };
+  MedicationSchedule: { medication: Medication; editMode?: boolean };
   MedicationConfirmation: { medicationId: string; scheduledTime: Date };
   LinkRFID: { medication: Medication };
   MedicationLabelCapture: undefined;

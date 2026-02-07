@@ -21,9 +21,6 @@ import {
   isSameMonth,
   startOfWeek,
   endOfWeek,
-  addDays,
-  isBefore,
-  startOfDay,
 } from 'date-fns';
 import { useMedications } from '../../contexts/MedicationsContext';
 import { SchedulingService } from '../../services/SchedulingService';
@@ -40,18 +37,21 @@ function getCalendarDays(month: Date): Date[] {
   return eachDayOfInterval({ start, end });
 }
 
+/**
+ * Returns medications and their times for a given day.
+ * A medication appears when:
+ * 1. The date is a scheduled day for its frequency (occursOnDate), and
+ * 2. It has at least one reminder time saved.
+ * If it has no reminder time, it does not appear until the user sets at least one time on the Set reminders screen.
+ * PRN is excluded from the schedule.
+ */
 function getMedicationsForDay(medications: Medication[], day: Date): Array<{ medication: Medication; time: Date }> {
-  const dayStart = startOfDay(day);
-  const dayEnd = addDays(dayStart, 1);
   const result: Array<{ medication: Medication; time: Date }> = [];
   medications.forEach((m) => {
-    if (!Array.isArray(m.reminderTimes)) return;
-    (m.reminderTimes || []).forEach((t) => {
-      const d = t instanceof Date ? t : new Date(t);
-      if (!isBefore(d, dayStart) && isBefore(d, dayEnd)) {
-        result.push({ medication: m, time: d });
-      }
-    });
+    if (!Array.isArray(m.reminderTimes) || m.reminderTimes.length === 0) return;
+    if (!SchedulingService.occursOnDate(m, day)) return;
+    const times = SchedulingService.getTimesForDay(m, day);
+    times.forEach((time) => result.push({ medication: m, time }));
   });
   result.sort((a, b) => a.time.getTime() - b.time.getTime());
   return result;
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   dateNumSelected: {
-    color: '#fff',
+    color: COLORS.primaryContrast,
   },
   sectionTitle: {
     fontSize: 16,
