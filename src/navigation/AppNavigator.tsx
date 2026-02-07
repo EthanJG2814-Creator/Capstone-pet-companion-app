@@ -1,18 +1,18 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
 import { TamagotchiProvider, useTamagotchiContext } from '../contexts/TamagotchiContext';
 import { MedicationsProvider } from '../contexts/MedicationsContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { PetCreationScreen } from '../screens/PetCreationScreen';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { CustomTabBar } from '../components/CustomTabBar';
+import { TabScreenWithAnimation } from '../components/TabScreenWithAnimation';
 import { COLORS } from '../utils/constants';
 import {
   MedicationsHomeScreen,
@@ -39,15 +39,28 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const MedicationStack = createStackNavigator<MedicationStackParamList>();
 const ScheduleStack = createStackNavigator<ScheduleStackParamList>();
 
-function TabBarIcon({ name, color, size }: { name: string; color: string; size: number }) {
-  const icons: Record<string, string> = {
-    home: '🏠',
-    trophy: '🏆',
-    medication: '💊',
-    schedule: '📅',
-    settings: '⚙️',
-  };
-  return <Text style={{ fontSize: 24 }}>{icons[name] || '•'}</Text>;
+function HomeScreenWithAnimation() {
+  return (
+    <TabScreenWithAnimation tabIndex={0}>
+      <HomeScreen />
+    </TabScreenWithAnimation>
+  );
+}
+
+function MedicationsTabWithAnimation() {
+  return (
+    <TabScreenWithAnimation tabIndex={1}>
+      <MedicationStackNavigator />
+    </TabScreenWithAnimation>
+  );
+}
+
+function ScheduleTabWithAnimation() {
+  return (
+    <TabScreenWithAnimation tabIndex={2}>
+      <ScheduleStackNavigator />
+    </TabScreenWithAnimation>
+  );
 }
 
 function MedicationStackNavigator() {
@@ -122,60 +135,28 @@ function ScheduleStackNavigator() {
 }
 
 const MainTabs: React.FC = () => {
-  const { isDark } = useTheme();
-  const { user } = useAuth();
-
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
-        tabBarStyle: {
-          backgroundColor: isDark ? COLORS.backgroundDark : COLORS.background,
-          borderTopColor: isDark ? COLORS.borderDark : COLORS.border,
-        },
+        lazy: false,
       }}
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => <TabBarIcon name="home" color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="Leaderboard"
-        component={LeaderboardScreen}
-        options={{
-          tabBarLabel: 'Leaderboard',
-          tabBarIcon: ({ color, size }) => <TabBarIcon name="trophy" color={color} size={size} />,
-        }}
+        component={HomeScreenWithAnimation}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Medications"
-        component={MedicationStackNavigator}
-        options={{
-          tabBarLabel: 'Medications',
-          tabBarIcon: ({ color, size }) => <TabBarIcon name="medication" color={color} size={size} />,
-        }}
+        component={MedicationsTabWithAnimation}
+        options={{ tabBarLabel: 'Medications' }}
       />
       <Tab.Screen
         name="Schedule"
-        component={ScheduleStackNavigator}
-        options={{
-          tabBarLabel: 'Schedule',
-          tabBarIcon: ({ color, size }) => <TabBarIcon name="schedule" color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: 'Settings',
-          tabBarIcon: ({ color, size }) => <TabBarIcon name="settings" color={color} size={size} />,
-        }}
+        component={ScheduleTabWithAnimation}
+        options={{ tabBarLabel: 'Schedule' }}
       />
     </Tab.Navigator>
   );
@@ -196,6 +177,16 @@ const AuthenticatedStack: React.FC = () => {
       ) : (
         <>
           <RootStack.Screen name="Main" component={MainTabs} />
+          <RootStack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ headerShown: true, title: 'Settings', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: '#fff' }}
+          />
+          <RootStack.Screen
+            name="Leaderboard"
+            component={LeaderboardScreen}
+            options={{ headerShown: true, title: 'Leaderboard', headerStyle: { backgroundColor: COLORS.primary }, headerTintColor: '#fff' }}
+          />
           <RootStack.Screen
             name="EditProfileScreen"
             component={EditProfileScreen}

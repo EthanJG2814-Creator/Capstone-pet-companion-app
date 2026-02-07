@@ -116,7 +116,7 @@ export const SettingsScreen: React.FC = () => {
   const goToEditProfile = () => navigation.navigate('EditProfileScreen');
   const goToChangePassword = () => navigation.navigate('ChangePasswordScreen');
   const goToScheduleSettings = () => navigation.navigate('ScheduleSettings');
-  const goToMedications = () => navigation.getParent()?.navigate('Medications');
+  const goToMedications = () => navigation.navigate('Main', { screen: 'Medications' });
 
   return (
     <ScrollView

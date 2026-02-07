@@ -98,10 +98,12 @@ export const AnimatedAvatar: React.FC<AnimatedAvatarProps> = ({
 const styles = StyleSheet.create({
   avatarCard: {
     width: '100%',
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 32,
     paddingHorizontal: 24,
+    paddingBottom: 20,
     marginBottom: 24,
     borderRadius: 24,
     backgroundColor: '#5b21b6',
@@ -110,17 +112,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#4c1d95',
   },
   avatarWrapper: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarEmoji: {
-    fontSize: 100,
-    marginBottom: 12,
+    fontSize: 160,
   },
   petName: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
+    alignSelf: 'center',
   },
   petNameDark: {
     color: '#fff',

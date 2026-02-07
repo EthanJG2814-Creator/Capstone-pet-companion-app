@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,60 +6,35 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTamagotchiContext } from '../contexts/TamagotchiContext';
-import { useMedications } from '../contexts/MedicationsContext';
-import { useAuth } from '../hooks/useAuth';
 import { ProgressBar } from '../components/ProgressBar';
-import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AnimatedAvatar } from '../components/AnimatedAvatar';
 import { COLORS } from '../utils/constants';
-import { StatAction } from '../types';
-import { SchedulingService } from '../services/SchedulingService';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const AVATAR_SECTION_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 export const HomeScreen: React.FC = () => {
-  const { tamagotchi, loading, performAction, error } = useTamagotchiContext();
-  const { medications } = useMedications();
-  const { userData } = useAuth();
+  const { tamagotchi, loading, error } = useTamagotchiContext();
   const navigation = useNavigation<any>();
   const { isDark } = useTheme();
-  const [showCareActions, setShowCareActions] = useState(false);
-  const [animationTrigger, setAnimationTrigger] = useState<StatAction | null>(null);
-
-  const nextDoses = useMemo(() => {
-    const list: { name: string; time: Date }[] = [];
-    (medications || []).forEach((m) => {
-      const next = SchedulingService.getNextDoseTime(m);
-      if (next) list.push({ name: m.drugName ?? 'Medication', time: next });
-    });
-    list.sort((a, b) => a.time.getTime() - b.time.getTime());
-    return list.slice(0, 3);
-  }, [medications]);
-
-  const handleAction = async (action: StatAction) => {
-    setAnimationTrigger(action);
-    try {
-      await performAction(action);
-      setShowCareActions(false);
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to perform action');
-    }
-  };
-
-  const clearAnimationTrigger = () => {
-    setAnimationTrigger(null);
-  };
 
   const handleAccountPress = () => {
-    navigation.navigate('Settings');
+    navigation.navigate('EditProfileScreen');
   };
 
   const handleSettingsPress = () => {
     navigation.navigate('Settings');
+  };
+
+  const handleLeaderboardPress = () => {
+    navigation.navigate('Leaderboard');
   };
 
   const handleCosmeticsPress = () => {
@@ -80,11 +55,34 @@ export const HomeScreen: React.FC = () => {
     );
   }
 
-  const getHealthColor = (value: number) =>
-    value >= 50 ? COLORS.healthGood : COLORS.health;
+  // Points: 0-100, resets at 100
+  const pointsValue = tamagotchi.health;
+  // Streak: 0-30 days, resets at 30
+  const streakDays = Math.min(30, tamagotchi.total_interactions_this_week);
+  const streakBarPercent = (streakDays / 30) * 100;
 
-  // Streak: use total interactions this week as a "weekly streak" (bar 0–100)
-  const streakValue = Math.min(100, tamagotchi.total_interactions_this_week * 10);
+  const statBarBgLight = {
+    points: '#7B61FF',
+    streak: '#14b8a6',
+    happiness: '#7B61FF',
+  };
+  const statBarBgDark = {
+    points: '#6d4ee6',
+    streak: '#0d9488',
+    happiness: '#6d4ee6',
+  };
+  const statBarTrack = isDark ? statBarBgDark : statBarBgLight;
+  // High-contrast white fill for Points and Streak so empty vs full is obvious
+  const statBarFill = '#ffffff';
+  const statLabelColor = '#fff';
+
+  // Happiness: always 100% bar, color indicates level (green=high, yellow=med, red=low)
+  const getHappinessColor = () => {
+    const h = tamagotchi.happiness;
+    if (h >= 70) return COLORS.healthGood; // green
+    if (h >= 40) return COLORS.hunger; // orange/yellow
+    return COLORS.health; // red
+  };
 
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]} edges={['top']}>
@@ -95,151 +93,101 @@ export const HomeScreen: React.FC = () => {
       >
         {/* Top bar: Account (left), Settings (right) */}
         <View style={[styles.header, isDark && styles.headerDark]}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleAccountPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.headerIcon}>👤</Text>
-          <Text style={[styles.headerLabel, isDark && styles.headerLabelDark]}>
-            Account
-          </Text>
-        </TouchableOpacity>
-        <View style={styles.headerSpacer} />
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleSettingsPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.headerIcon}>⚙️</Text>
-          <Text style={[styles.headerLabel, isDark && styles.headerLabelDark]}>
-            Settings
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Animated avatar – reacts to feed / play / sleep */}
-      <AnimatedAvatar
-        avatar={tamagotchi.avatar}
-        name={tamagotchi.name}
-        actionTrigger={animationTrigger}
-        onAnimationComplete={clearAnimationTrigger}
-        isDark={isDark}
-      />
-
-      {/* Health, Streak, Happiness bars */}
-      <View style={styles.statsSection}>
-        <View style={styles.statRow}>
-          <Text style={styles.statIcon}>⭐</Text>
-          <View style={styles.statBarWrapper}>
-            <ProgressBar
-              value={tamagotchi.health}
-              label={`Health: ${tamagotchi.health}%`}
-              color={COLORS.tamagotchiPurple}
-              showPercentage={false}
-            />
-          </View>
+          <TouchableOpacity
+            style={[styles.headerIconButton, styles.headerIconCircle, isDark && styles.headerIconCircleDark]}
+            onPress={handleAccountPress}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerIcon, isDark && styles.headerIconDark]}>👤</Text>
+          </TouchableOpacity>
+          <View style={styles.headerSpacer} />
+          <TouchableOpacity
+            style={[styles.headerIconButton, styles.headerIconCircle, isDark && styles.headerIconCircleDark]}
+            onPress={handleSettingsPress}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerIcon, isDark && styles.headerIconDark]}>⚙️</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.statRow}>
-          <Text style={styles.statIcon}>🔥</Text>
-          <View style={styles.statBarWrapper}>
-            <ProgressBar
-              value={streakValue}
-              label={`Streak: ${tamagotchi.total_interactions_this_week} this week`}
-              color={COLORS.tamagotchiTeal}
-              showPercentage={false}
-            />
-          </View>
-        </View>
-        <View style={styles.statRow}>
-          <Text style={styles.statIcon}>❤️</Text>
-          <View style={styles.statBarWrapper}>
-            <ProgressBar
-              value={tamagotchi.happiness}
-              label={`Happiness: ${tamagotchi.happiness}%`}
-              color={COLORS.tamagotchiPurpleLight}
-              showPercentage={false}
-            />
-          </View>
-        </View>
-      </View>
 
-      {/* Medication reminders */}
-      <View style={[styles.medSection, isDark && styles.medSectionDark]}>
-        <Text style={[styles.medSectionTitle, isDark && styles.medSectionTitleDark]}>
-          Medication reminders
-        </Text>
-        {nextDoses.length > 0 ? (
-          nextDoses.map((d, i) => (
-            <View key={i} style={styles.medRow}>
-              <Text style={[styles.medName, isDark && styles.medNameDark]}>{d.name}</Text>
-              <Text style={[styles.medTime, isDark && styles.medTimeDark]}>
-                {SchedulingService.formatTime(d.time)}
-              </Text>
+        {/* Avatar section – 60% of screen */}
+        <View style={[styles.avatarSection, isDark && styles.avatarSectionDark]}>
+          <AnimatedAvatar
+            avatar={tamagotchi.avatar}
+            name={tamagotchi.name}
+            actionTrigger={null}
+            isDark={isDark}
+          />
+        </View>
+
+        {/* Points, Streak, Happiness – with colored backgrounds */}
+        <View style={[styles.statsSection, isDark && styles.statsSectionDark]}>
+          <View style={[styles.statBar, { backgroundColor: statBarTrack.points }]}>
+            <Text style={styles.statIcon}>⭐</Text>
+            <View style={styles.statBarWrapper}>
+              <ProgressBar
+                value={pointsValue}
+                label={`Points: ${pointsValue}/100`}
+                color={statBarFill}
+                showPercentage={false}
+                trackColor={statBarTrack.points}
+                labelColor={statLabelColor}
+              />
             </View>
-          ))
-        ) : (
-          <Text style={[styles.medEmpty, isDark && styles.medEmptyDark]}>
-            No upcoming doses. Add medications in the Medications tab.
-          </Text>
-        )}
-        <TouchableOpacity
-          style={styles.medLink}
-          onPress={() => navigation.getParent()?.navigate('Medications')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.medLinkText}>View medications →</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Care actions (Feed, Play, Sleep) - expandable */}
-      {showCareActions && (
-        <View style={[styles.careActionsBar, isDark && styles.careActionsBarDark]}>
-          <Button
-            title="🍎 Feed"
-            onPress={() => handleAction('feed')}
-            variant="primary"
-            style={styles.careButton}
-          />
-          <Button
-            title="🎮 Play"
-            onPress={() => handleAction('play')}
-            variant="secondary"
-            style={styles.careButton}
-          />
-          <Button
-            title="😴 Sleep"
-            onPress={() => handleAction('sleep')}
-            variant="primary"
-            style={styles.careButton}
-          />
+          </View>
+          <View style={[styles.statBar, { backgroundColor: statBarTrack.streak }]}>
+            <Text style={styles.statIcon}>🔥</Text>
+            <View style={styles.statBarWrapper}>
+              <ProgressBar
+                value={streakBarPercent}
+                label={`Streak: ${streakDays}/30 Days`}
+                color={statBarFill}
+                showPercentage={false}
+                trackColor={statBarTrack.streak}
+                labelColor={statLabelColor}
+              />
+            </View>
+          </View>
+          <View style={[styles.statBar, { backgroundColor: statBarTrack.happiness }]}>
+            <Text style={styles.statIcon}>❤️</Text>
+            <View style={styles.statBarWrapper}>
+              <ProgressBar
+                value={100}
+                label={`Happiness: ${tamagotchi.happiness}%`}
+                color={getHappinessColor()}
+                showPercentage={false}
+                trackColor={statBarTrack.happiness}
+                labelColor={statLabelColor}
+                alwaysFullColor
+              />
+            </View>
+          </View>
         </View>
-      )}
 
-      {/* Bottom: Cosmetics + Care (navigation / cosmetic menu) */}
-      <View style={styles.bottomMenu}>
-        <TouchableOpacity
-          style={[styles.circleButton, styles.circleButtonPurple]}
-          onPress={handleCosmeticsPress}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.circleButtonIcon}>✨</Text>
-          <Text style={styles.circleButtonLabel}>Cosmetics</Text>
-        </TouchableOpacity>
+        {/* Bottom: Cosmetics + Leaderboard */}
+        <View style={styles.bottomMenu}>
+          <TouchableOpacity
+            style={[styles.circleButton, styles.circleButtonPurple]}
+            onPress={handleCosmeticsPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.circleButtonIcon}>✨</Text>
+            <Text style={styles.circleButtonLabel}>Cosmetics</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.circleButton, styles.circleButtonTeal]}
-          onPress={() => setShowCareActions(!showCareActions)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.circleButtonIcon}>🍎</Text>
-          <Text style={styles.circleButtonLabel}>Care</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.circleButton, styles.circleButtonTeal]}
+            onPress={handleLeaderboardPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.circleButtonIcon}>🏆</Text>
+            <Text style={styles.circleButtonLabel}>Leaderboard</Text>
+          </TouchableOpacity>
+        </View>
 
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -277,34 +225,56 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerDark: {},
-  headerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerIconButton: {
     padding: 8,
+  },
+  headerIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(123, 97, 255, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  headerIconCircleDark: {
+    backgroundColor: 'rgba(123, 97, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   headerIcon: {
     fontSize: 22,
-    marginRight: 6,
   },
-  headerLabel: {
-    fontSize: 14,
-    color: COLORS.tamagotchiPurple,
-    fontWeight: '600',
-  },
-  headerLabelDark: {
-    color: COLORS.tamagotchiPurpleLight,
+  headerIconDark: {
+    opacity: 0.95,
   },
   headerSpacer: {
     flex: 1,
   },
+  avatarSection: {
+    width: '100%',
+    height: AVATAR_SECTION_HEIGHT,
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderRadius: 24,
+    backgroundColor: COLORS.tamagotchiBgStart,
+  },
+  avatarSectionDark: {
+    backgroundColor: '#4c1d95',
+  },
   statsSection: {
     width: '100%',
-    marginBottom: 28,
+    marginBottom: 24,
   },
-  statRow: {
+  statsSectionDark: {},
+  statBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
   },
   statIcon: {
     fontSize: 28,
@@ -314,22 +284,6 @@ const styles = StyleSheet.create({
   },
   statBarWrapper: {
     flex: 1,
-  },
-  careActionsBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 16,
-    backgroundColor: COLORS.border,
-  },
-  careActionsBarDark: {
-    backgroundColor: COLORS.borderDark,
-  },
-  careButton: {
-    minWidth: 90,
   },
   bottomMenu: {
     flexDirection: 'row',
@@ -375,28 +329,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
-  medSection: {
-    width: '100%',
-    backgroundColor: COLORS.cardLight,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  medSectionDark: { backgroundColor: COLORS.cardLightDark },
-  medSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 12,
-  },
-  medSectionTitleDark: { color: COLORS.textDark },
-  medRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  medName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  medNameDark: { color: COLORS.textDark },
-  medTime: { fontSize: 14, color: COLORS.textSecondary },
-  medTimeDark: { color: COLORS.textSecondaryDark },
-  medEmpty: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 8 },
-  medEmptyDark: { color: COLORS.textSecondaryDark },
-  medLink: { marginTop: 8 },
-  medLinkText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
 });

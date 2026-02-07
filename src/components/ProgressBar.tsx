@@ -4,10 +4,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { COLORS } from '../utils/constants';
 
 interface ProgressBarProps {
-  value: number; // 0-100
+  value: number; // 0-100 (or custom max when alwaysFullColor is used)
   label: string;
   color: string;
   showPercentage?: boolean;
+  trackColor?: string;
+  labelColor?: string;
+  /** When set, bar is always 100% width; color indicates level (e.g. happiness mood) */
+  alwaysFullColor?: boolean;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -15,20 +19,25 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   label,
   color,
   showPercentage = true,
+  trackColor,
+  labelColor,
+  alwaysFullColor = false,
 }) => {
   const { isDark } = useTheme();
-  
+
   const clampedValue = Math.max(0, Math.min(100, value));
+  const fillWidth = alwaysFullColor ? 100 : clampedValue;
   const percentage = Math.round(clampedValue);
+  const textColorStyle = labelColor ? { color: labelColor } : undefined;
 
   return (
     <View style={styles.container}>
       <View style={styles.labelContainer}>
-        <Text style={[styles.label, isDark && styles.labelDark]}>
+        <Text style={[styles.label, !labelColor && isDark && styles.labelDark, textColorStyle]}>
           {label}
         </Text>
         {showPercentage && (
-          <Text style={[styles.percentage, isDark && styles.percentageDark]}>
+          <Text style={[styles.percentage, !labelColor && isDark && styles.percentageDark, textColorStyle]}>
             {percentage}%
           </Text>
         )}
@@ -36,13 +45,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       <View
         style={[
           styles.track,
-          isDark && styles.trackDark,
+          isDark && !trackColor && styles.trackDark,
+          trackColor && { backgroundColor: trackColor },
         ]}
       >
         <View
           style={[
             styles.fill,
-            { width: `${clampedValue}%`, backgroundColor: color },
+            { width: `${fillWidth}%`, backgroundColor: color },
           ]}
         />
       </View>
